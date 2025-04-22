@@ -93,9 +93,10 @@ Each peer:
 
 ## 6. Work Division
 
-### Person 1: Partial Blockchain Layer
+### Person 1: Partial Blockchain Layer + Testing and integration
 - `block.py`: Block structure, hash computation, PoW logic.
 - `blockchain.py`: Chain validation, append logic, fork resolution.
+- User testing, deployment, and integration.
 
 ### Person 2: Networking Layer
 - `tracker_server.py`: Peer registration, status updates.
@@ -106,7 +107,7 @@ Each peer:
 - `merkletree.py`: For verifying transaction consistency in blocks.
 - Voting transaction submission interface.
 - Application protocol design.
-- User testing, deployment, and integration.
+
 
 ---
 
