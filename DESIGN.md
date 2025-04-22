@@ -93,18 +93,18 @@ Each peer:
 
 ## 6. Work Division
 
-### Group 1: Blockchain Layer
+### Person 1: Partial Blockchain Layer
 - `block.py`: Block structure, hash computation, PoW logic.
 - `blockchain.py`: Chain validation, append logic, fork resolution.
-- `transaction.py`: Transaction model and integrity checks.
-- `merkletree.py` (optional): For verifying transaction consistency in blocks.
 
-### Group 2: Networking Layer
+### Person 2: Networking Layer
 - `tracker_server.py`: Peer registration, status updates.
 - `peer.py`: UDP networking logic, message handling, block/vote broadcasting.
 
-### Group 3: Application Layer
-- Voting transaction submission interface (CLI or Streamlit).
+### Person 3: Partial Blockchain Layer + Application Layer
+- `transaction.py`: Transaction model and integrity checks.
+- `merkletree.py`: For verifying transaction consistency in blocks.
+- Voting transaction submission interface.
 - Application protocol design.
 - User testing, deployment, and integration.
 
