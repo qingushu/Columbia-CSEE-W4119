@@ -145,53 +145,92 @@ Each peer:
 
 ## 6. Work Division
 
-### Person 1: Partial Blockchain Layer + Testing and integration
+### Person 1: Blockchain Layer + Testing and integration
 
-- `block.py`: Block structure, hash computation, PoW logic.
-- `blockchain.py`: Chain validation, append logic, fork resolution.
-- `transaction.py`: Transaction model and integrity checks.
+- `block.py`: Block structure, hash computation, PoW logic. Potential attributes and methods:
+  - `index`: int
+  - `timestamp`: str
+  - `transactions`: List[Transaction]
+  - `previous_hash`:str
+  - `nonce`: int
+  - `hash`: str
+  - `compute_hash()`
+- `blockchain.py`: Chain validation, append logic, fork. Potential attributes and methods:
+  - `chain`: List[Block] - Store as list but can traverse as linked list using previous_hash attributes.
+  - `difficulty`:int - number of leadings 0s for valid hash
+  - `add_block()` - to be called after mining and when receiving a broadcasted block. Should perform validation.
+  - `create_block()`
+  - `is_valid_chain()`
+  - `replace_chain()`
+- `transaction.py`: Transaction model and integrity checks. Potential attributes and methods:
+
+  - `voter_id`: str
+  - `candidate_id`: str
+  - `timestamp`: str
+  - `to_dict()` - to return attributes as dict. Useful for UI.
+
 - User testing, deployment, and integration.
 
 ### Person 2: Networking Layer
 
-- `tracker_server.py`: Peer registration, status updates, and vote option initialization and broadcasting. Multithreaded design to constantly listen for incoming UDP messages and handle main logic thread (broadcasting peer list and voting options). Example class methods include:
-  - initialize(): To create a server that constantly listens for incoming UDP messages and responds accordingly.
-- `peer.py`: UDP networking logic, message handling, block/vote broadcasting. Create a multithread architecture to constantly listeen for incoming UDP messages and handling main logic thread. Potential API functions to be called by application layer `client.py` include:
+- `tracker_server.py`: Peer registration, status updates, and vote option initialization and broadcasting. Multithreaded design to constantly listen for incoming UDP messages and handle main logic thread (broadcasting peer list and voting options). This class will be used by the application layer `server.py`. Example class methods include:
+  - `initialize()`: To create a server that constantly listens for incoming UDP messages and responds accordingly.
+- `peer.py`: UDP networking logic, message handling, block/vote broadcasting. Create a multithread architecture to constantly listen for incoming UDP messages and handling main logic thread. This class will be used by application layer `client.py` to create a class instance for peer client.Potential API functions to be called by application layer `client.py` include:
   - `connect()`: To register the peer with the tracker. Fetches and returns the peer list and voting options from the tracker. To be called by application layer `client.py`.
   - `submit_vote()`: To send a transaction for mining. Upon successful mining of newly create block, should append local to blockchain and broadcast results. To be called by application layer `client.py`/`client_ui.py`.
+- Message types:
+  - Tracker <-> Peer:
+    - `REGISTER_PEER` (Peer -> Tracker): For peer to initiate connection to network.
+    - `REGISTER_ACK` (Tracker -> Peer): Contains voting options
+    - `LEAVE_PEER` (Peer -> Tracker): To inform tracker that it is leaving network.
+  - Peer <-> Peer:
+    - `NEW_BLOCK`: Sent when a peer broadcasts its newest block to other peers.
+    - `REQUEST_CHAIN`: Used by new peers to request most up-to-date chains.
+    - `CHAIN_RESPONSE`: Used to respond to REQUEST_CHAIN
 
-### Person 3: Partial Blockchain Layer + Application Layer
+### Person 3: Application Layer + Integration
 
-- `client_ui.py`: Provides the front-end UI using streamlit. Allows peers (voters) to submit votes, visualize their local blockchain, and view current vote tallies. Submits votes to peer.py.
+- `client_ui.py`: Provides the front-end UI using Streamlit library or React components. Allows peers (voters) to submit votes, visualize their local blockchain, and view current vote tallies. Submits votes to peer.py.
 
 - `client.py`: Serves as P2P node. Launches `client_ui.py` to render frontend. Initializes the peer instance by creating peer.py instance and calls on class functions. On startup, it registers with the tracker and requests the voting options. API functions include:
 
-  - `update_ui()` to refresh UI based on changes in the blockhain. To be called by network layer `peer.py`.
+  - `update_ui() (optional, dependning on UI logic implementation)` to refresh UI based on changes in the blockhain. To be called by network layer `peer.py`. Not required if state is introduced to UI (automatically rerenders upon updating the blockchain).
 
 - `server.py`: Serves as back-end server managing tracker initialization. Takes in CLI arguments to configure voting candidates to be broadcasted to each peer upon receiving a connection request message. Invokes `tracker_server.py`, passing in CLI arguments to configure voting candidates to be broadcasted to each peer.
 
+- Application layer work is dependent on the completion of all lower-level layers and requires integrating all above code files from other team members.
+
 - `merkletree.py (Optional)`: For verifying transaction consistency in blocks.
 
-### High-level Diagram (TODO)
+### High-level Diagram
 
-      +----------------+
-      |   Tracker VM   |
-      |    server.py   |
-      +----------------+
-            ▲
-            ▼
-      +---------------+       +---------------+
-      |   Peer VM 1   | <---> |   Peer VM 2   |
-      | peer.py + UI  |       | peer.py + UI  |
-      +---------------+       +---------------+
+      +----------------------------------------------------------------------------------------------------+
+      |                                           Tracker VM                                               |
+      |                                     server.py (tracker_server.py)                                  |
+      +----------------------------------------------------------------------------------------------------+
+                     ▲                                  ▲                                    ▲
+                     |                                  |                                    |
+
+                  Peers send msg to tracker_server upon initialization to request voting options.
+                                 Request for peer node addresses during broadcasting.
+
+                     |                                  |                                    |
+                     ▼                                  ▼                                    ▼
+      +---------------------------+       +---------------------------+       +---------------------------+
+      |         Peer VM 1         | <---> |         Peer VM 2         | <---> |         Peer VM 3         |
+      |  UI + client.py (peer.py) |       |  UI + client.py (peer.py) |       |  UI + client.py (peer.py) |
+      +---------------------------+       +---------------------------+       +---------------------------+
+
+      (Peers broadcast newly added block to all other peers following the
+      request to tracker_server.py for peer node addresses.)
       ...
 
 ---
 
 ## 7. Technologies Used
 
-- **Language**: Python 3
-- **Frameworks/Libraries**: Streamlit (For UI)
+- **Language**: Python3 and potentially JavaScript for UI
+- **UI Frameworks/Libraries**: Streamlit UI/ ReactJS
 - **Networking**: UDP sockets
 - **Hashing**: SHA-256 via `hashlib`
 - **Deployment**: Google Cloud VMs for tracker and peer nodes
