@@ -1,8 +1,10 @@
 # DESIGN.md
 
-## 1. Overview
+**Team No. 22**  
+**Team Members:** Kevin Li, Ian Li, Gushu Qin
 
-This project implements a simplified blockchain-based **Decentralized Voting System** using a peer-to-peer (P2P) architecture. The blockchain enables a group of nodes to reach consensus on voting results without a centralized authority. Each peer maintains a local copy of the blockchain, validates transactions (votes), mines blocks, handles forks, and communicates with other peers in the network.
+## 1. Overview
+This project implements a simplified blockchain-based **Decentralized Voting System** using a peer-to-peer (P2P) architecture. The blockchain enables a group of nodes to reach consensus on voting results without a centralized authority. Each peer maintains a local copy of the blockchain, validates transactions (votes), mines blocks, handles forks, detects and rejects invalid blocks, and communicates with other peers in the network.
 
 The system includes a tracker to manage peer discovery and a network of at least 3 peers running on Google Cloud VMs. The blockchain ensures tamper resistance, vote integrity, and transparency of the election process.
 
@@ -11,9 +13,7 @@ The system includes a tracker to manage peer discovery and a network of at least
 ## 2. Blockchain Design
 
 ### 2.1 Block Structure
-
 Each block includes:
-
 - `index`: Position in the chain
 - `timestamp`: UTC time of block creation
 - `transactions`: List of vote transactions
@@ -22,13 +22,12 @@ Each block includes:
 - `hash`: SHA-256 hash of the block contents
 
 ### 2.2 Mining & Consensus
-
 - **Consensus Algorithm:** Proof of Work (PoW) with adjustable difficulty.
-- **Mining Process:** When a peer submits a vote, it immediately initiates mining a block containing that vote. There is no global transaction pool — each voting action triggers block creation locally.
+- **Mining Process:** When a peer submits a vote, it immediately initiates mining a block containing that vote. Each block only contains one vote transaction. This design eliminates the need for a global transaction pool and allows easier testing.
 - **Fork Resolution:** If two blocks are mined concurrently, the network may temporarily split. Peers resolve forks by adopting the longest valid chain, discarding shorter branches.
+- **Malicious Block Handling:** Each node validates every received block to ensure it matches the expected hash, satisfies PoW, and links to the known chain. Invalid or tampered blocks are rejected.
 
 ### 2.3 Chain Initialization
-
 - The blockchain starts empty. There is no predefined genesis block.
 - The first peer to join and register with the tracker begins the chain by submitting and mining the first vote.
 
@@ -37,26 +36,23 @@ Each block includes:
 ## 3. Peer-to-Peer Protocol
 
 ### 3.1 Tracker Node
-
 - Acts as a coordination service to track active peers.
 - Maintains an up-to-date list of active peers (IP and port).
 - Peers register on join and deregister on leave.
 - Sends updated peer lists to newly joining nodes.
 
 ### 3.2 Peer Node Responsibilities
-
 Each peer:
-
 - Registers with the tracker and receives the peer list.
 - Maintains a local copy of the blockchain.
 - Submits and stores new votes.
 - Mines a block **immediately upon vote submission** (no transaction pool).
 - Verifies and adds received blocks.
+- Rejects invalid or tampered blocks.
 - Broadcasts newly mined blocks.
 - Resolves forks using the longest chain rule.
 
 ### 3.3 Communication
-
 - Implemented using UDP sockets.
 - JSON is used for message formatting.
 - Message types include:
@@ -71,7 +67,6 @@ Each peer:
 ## 4. Demo Application: Decentralized Voting System
 
 ### 4.1 Features
-
 - Voters submit votes which are mined into blocks immediately.
 - Each block contains a single vote transaction.
 - Blockchain is updated and broadcast after mining.
@@ -81,45 +76,39 @@ Each peer:
 ### 4.2 Full Voting Workflow
 
 1. **Tracker Initialization:**
-
    - The tracker node starts and listens on a fixed UDP port.
    - It maintains a dynamic list of active peers by handling `REGISTER_PEER` and `LEAVE_PEER` messages.
 
 2. **Peer Registration and Startup:**
-
    - When a peer boots, it sends a `REGISTER_PEER` message to the tracker.
    - The tracker responds with the current list of active peers.
    - The peer then syncs its chain (if any) using `REQUEST_CHAIN` messages to existing peers.
 
 3. **Vote Submission:**
-
    - Each peer is both a voter and a miner. Upon deciding on a vote, the peer constructs a `NEW_VOTE` transaction locally.
-   - The vote is validated and triggers immediate mining of a new block containing the vote.
-   - The vote is validated and immediately turned into a `NEW_VOTE` transaction locally. 
-   - This triggers mining of a new block with that single vote.
+   - The vote is validated and triggers immediate mining of a new block containing that vote.
    - *Redundancy found in vote validation and truning vote into a transaction.*
 
 4. **Block Mining:**
-
    - The peer runs the PoW algorithm to find a valid nonce.
    - Once the block is mined, it is appended to the local blockchain.
    - A `NEW_BLOCK` message is broadcast to all known peers.
 
 5. **Block Propagation and Validation:**
-
    - Peers receiving a `NEW_BLOCK` message verify the block’s validity (hash, nonce, previous hash).
    - If valid, the block is added to the local blockchain.
    - If it creates a fork, the peer uses the longest chain rule to resolve it.
+   - Invalid or tampered blocks are rejected.
 
 6. **Result Tallying:**
-
-   - Peers can be queried (via CLI/API) for the current voting results.
+   - Peers can be queried (via CLI/UI) for the current voting results.
    - The vote count is computed by scanning the local blockchain and aggregating candidate IDs.
-   - To enable fault tolerance, we will query each peer in the network and get the most frequent/ most agreed on voting results.
+   - As all nodes maintain the same valid blockchain, each node independently computes the correct result. There is no need to query other peers.
 
 7. **Resilience:**
-   - In case a peer falls behind, it can request the full chain using `REQUEST_CHAIN` upon restart.
-   - Forks due to concurrent mining are resolved automatically.
+   - In case a peer falls behind or restarts, it can request the full chain using `REQUEST_CHAIN`.
+   - Forks due to concurrent mining are resolved automatically via the longest chain rule.
+
 
 ---
 
