@@ -95,8 +95,9 @@ Each peer:
 
    - Each peer is both a voter and a miner. Upon deciding on a vote, the peer constructs a `NEW_VOTE` transaction locally.
    - The vote is validated and triggers immediate mining of a new block containing the vote.
-   - The vote is validated and immediately turned into a `NEW_VOTE` transaction locally.
+   - The vote is validated and immediately turned into a `NEW_VOTE` transaction locally. 
    - This triggers mining of a new block with that single vote.
+   - *Redundancy found in vote validation and truning vote into a transaction.*
 
 4. **Block Mining:**
 
@@ -114,6 +115,7 @@ Each peer:
 
    - Peers can be queried (via CLI/API) for the current voting results.
    - The vote count is computed by scanning the local blockchain and aggregating candidate IDs.
+   - To enable fault tolerance, we will query each peer in the network and get the most frequent/ most agreed on voting results.
 
 7. **Resilience:**
    - In case a peer falls behind, it can request the full chain using `REQUEST_CHAIN` upon restart.
@@ -129,7 +131,7 @@ Each peer:
 - `blockchain.py`: Manages the chain of blocks, mining, validation, and fork resolution.
 - `transaction.py`: Defines a Vote transaction structure (voter_id, candidate_id, timestamp).
 - `tracker_server.py`: Maintains the active peer list and shares it with joining peers.
-- `peer.py`: Represents a peer node. Handles blockchain state, networking, vote submission, mining, and message broadcasting.
+- `peer.py`: Represents a peer node. Handles blockchain state, networking, vote submission, mining, and message broadcasting and retrival of voting results.
 - `merkletree.py`: Supports efficient block verification if multiple transactions per block are implemented.
 - `voting_api.py`: Flask-based HTTP interface for vote submission and result querying (optional for demo).
 
