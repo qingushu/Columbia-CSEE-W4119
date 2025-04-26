@@ -2,20 +2,22 @@
 import streamlit as st
 
 class ClientUi:
-    def __init__(self, port, address, peer=None):
+    def __init__(self, port, address, ballot_options=None, blockchain=None, peer=None):
         self.port = port
         self.address = address
+        self.ballot_options = ballot_options
+        self.blockchain = blockchain
         self.peer = peer
 
     def run_ui(self):
         st.title("Decentralized Voting App")
         
         # Only display the possible options 
-        if not self.peer.options:
+        if not self.ballot_options:
             st.spinner(text="Awaiting ballot from tracker...")
         else: 
             self.display_blockchain()
-            self.display_voting_options(self.peer.options)
+            self.display_voting_options(self.ballot_options)
     
     def display_blockchain(self):
         return
@@ -31,7 +33,7 @@ class ClientUi:
             submitted = st.form_submit_button("Submit")
             if submitted:
                 st.success('Ballot submitted. Initiating mining + broadcaasting...', icon=":material/check:")
-                # self.peer.submit_vote(vote_id, canadiate_id) 
+                # self.peer.submit_vote(vote_id, selected_candidate) 
 
 # Below is only for testing purposes during development
 if __name__ == '__main__':
