@@ -6,7 +6,7 @@ import sys
 class Client:
     def __init__(self, client_network_port, client_app_port, client_addr, 
                        server_addr, server_port):
-        self.peer = DummyPeer() # TODO: Initialize peer here
+        self.peer = DummyPeer() # TODO: Initialize peer here; using dummy for now
         self.ui = ClientUi(client_app_port, client_addr, self.peer)
 
 # TODO: Note--dummy peer object for testing
