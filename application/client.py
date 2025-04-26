@@ -6,13 +6,10 @@ import sys
 class Client:
     def __init__(self, client_network_port, client_app_port, client_addr, 
                        server_addr, server_port):
-        self.peer = DummyPeer() # TODO: Initialize peer here
-        self.ui = ClientUi(client_app_port, client_addr, self.peer)
-
-# TODO: Note--dummy peer object for testing
-class DummyPeer:
-    def __init__(self):
-        self.options = ['A', 'B', 'C']
+        self.peer = None
+        self.blockchain = None
+        self.ballot_options = ['A', 'B', 'C'] # Dummy for testing. TODO: Change to None
+        self.ui = ClientUi(client_app_port, client_addr, self.ballot_options, self.blockchain)
 
 if __name__ == '__main__':
     client_network_port = int(sys.argv[1]) # port nubmer for p2p communication
@@ -26,7 +23,7 @@ if __name__ == '__main__':
 
     # TODO: Initialize connection
     # client.peer.connect() -> Should register with the tracker
-    # client.peer.request_ballot() -> Should request for candidates
+    # self.ballot_options = client.peer.request_ballot() -> Should request for candidates
 
     # TODO: For testing purposes, creating a dummy peer. Remove later
     client.ui.run_ui()
