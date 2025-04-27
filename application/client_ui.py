@@ -3,9 +3,9 @@ import pandas as pd
 import time 
 
 class ClientUi:
-    def __init__(self, port, address, ballot_options=None, blockchain=None, peer=None):
-        self.port = port
-        self.address = address
+    def __init__(self, peer_port, peer_addr, ballot_options=None, blockchain=None, peer=None):
+        self.peer_port = peer_port
+        self.peer_addr = peer_addr
         self.ballot_options = ballot_options
         self.blockchain = blockchain
         self.peer = peer
@@ -17,7 +17,7 @@ class ClientUi:
             page_icon="🗳️",
         )
         
-        st.title(":material/How_To_Vote: Decentralized Voting App")
+        st.title(":orange[:material/How_To_Vote: Decentralized Voting App]")
         st.subheader("Secure Peer-to-Peer Blockchain Voting")
 
         with st.container():
@@ -43,9 +43,9 @@ class ClientUi:
         with st.container(border=True):
             col1, col2 = st.columns(2)
             with col1: 
-                st.write(f"**Port:** {self.port}")
+                st.write(f"**Peer Port:** {self.peer_port}")
             with col2:
-                st.write(f"**IP Address:** {self.address}")
+                st.write(f"**Peer IP Address:** {self.peer_addr}")
         while not self.ballot_options:
             with st.spinner(text="Awaiting ballot from tracker..."):
                 time.sleep(100) # Run spinner until ballot arrives
