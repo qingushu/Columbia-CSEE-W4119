@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time 
+from streamlit_autorefresh import st_autorefresh
 
 class ClientUi:
     def __init__(self, client):
@@ -12,12 +13,7 @@ class ClientUi:
             page_title="Decentralized Voting App",
             page_icon="🗳️",
         )
-
-        if 'last_blockchain_length' not in st.session_state:
-            st.session_state['last_blockchain_length'] = 0
-
-        self.check_blockchain_updated()
-
+        
         st.title(":orange[:material/How_To_Vote: Decentralized Voting App]")
         st.subheader("Secure Peer-to-Peer Blockchain Voting")
 
@@ -47,9 +43,10 @@ class ClientUi:
                 st.write(f"**Peer Port:** {self.client.peer_port}")
             with col2:
                 st.write(f"**Peer IP Address:** {self.client.peer_addr}")
+
         while not self.client.ballot_options:
             with st.spinner(text="Awaiting ballot from tracker..."):
-                time.sleep(100) # Run spinner until ballot arrives
+                time.sleep(1) # Run spinner until ballot arrives
         else: 
             with st.container(border=True):
                 self.display_blockchain()
@@ -61,7 +58,8 @@ class ClientUi:
                         self.display_total_votes()
                 with col2:
                     self.display_voting_options(self.client.ballot_options)
-        
+
+    @st.fragment(run_every="0.5s")
     def display_total_votes(self):
         st.write("**:material/Query_Stats: Total votes**")
         # TODO: Remove dummy block chain once ready
@@ -85,6 +83,7 @@ class ClientUi:
 
         st.bar_chart(df.set_index('Candidates'), horizontal = True, color=['#fb6c56'])
 
+    @st.fragment(run_every="0.5s")
     def display_blockchain(self):
         hex_colors = ['#555555','#ff4b4b'] # Gray, Orange
 
@@ -182,10 +181,6 @@ class ClientUi:
                 elif not selected_candidate:
                     st.error("Select a candidate.")
                 else:
-                    st.success('Ballot submitted. Initiating mining + broadcaasting...', icon=":material/check:")
+                    st.toast('Ballot submitted. Initiating mining + broadcasting...', icon=":material/check:")
                 # self.peer.submit_vote(vote_id, selected_candidate) 
-
-    def check_blockchain_updated(self):
-        if self.client.blockchain and len(self.client.blockchain) != st.session_state.get('last_blockchain_length', 0):
-            st.session_state['last_blockchain_length'] = len(self.client.blockchain)
-            st.experimental_rerun()
+    
