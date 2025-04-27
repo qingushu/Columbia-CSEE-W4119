@@ -16,7 +16,12 @@ class ClientUi:
             page_title="Decentralized Voting App",
             page_icon="🗳️",
         )
-        
+
+        if 'last_blockchain_length' not in st.session_state:
+            st.session_state['last_blockchain_length'] = 0
+
+        self.check_blockchain_updated()
+
         st.title(":orange[:material/How_To_Vote: Decentralized Voting App]")
         st.subheader("Secure Peer-to-Peer Blockchain Voting")
 
@@ -183,3 +188,8 @@ class ClientUi:
                 else:
                     st.success('Ballot submitted. Initiating mining + broadcaasting...', icon=":material/check:")
                 # self.peer.submit_vote(vote_id, selected_candidate) 
+
+    def check_blockchain_updated(self):
+        if self.blockchain and len(self.blockchain) != st.session_state.get('last_blockchain_length', 0):
+            st.session_state['last_blockchain_length'] = len(self.blockchain)
+            st.experimental_rerun()
