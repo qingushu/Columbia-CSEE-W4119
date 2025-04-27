@@ -146,13 +146,24 @@ Each peer:
   - `nonce`: int
   - `hash`: str
   - `compute_hash()`
-- `blockchain.py`: Chain validation, append logic, fork. Potential attributes and methods:
-  - `chain`: List[Block] - Store as list but can traverse as linked list using previous_hash attributes.
-  - `difficulty`:int - number of leadings 0s for valid hash
-  - `add_block()` - to be called after mining and when receiving a broadcasted block. Should perform validation.
-  - `create_block()`
-  - `is_valid_chain()`
-  - `replace_chain()`
+- `blockchain.py`: Manages the chain of blocks, mining, validation, fork resolution, and vote tallying. Attributes and methods:
+  - `chain`: List[Block] - Stores blocks as a list but can traverse as a linked list using previous_hash attributes
+  - `difficulty`: int - Number of leading 0s required for valid hash
+  - `orphan_blocks`: dict - Stores blocks that can't be immediately added (parent unknown)
+  - `known_block_hashes`: set - Tracks all block hashes to avoid redundant processing
+  
+  Key methods:
+  - `add_block()` - Validates and adds a block to the chain
+  - `mine_block()` - Creates and mines a new block with given transactions
+  - `is_valid_proof()` - Verifies block hash satisfies difficulty requirement
+  - `is_valid_chain()` - Validates entire blockchain for integrity
+  - `replace_chain()` - Implements longest chain rule for fork resolution
+  - `_process_orphans()` - Connects orphaned blocks when their parent arrives
+  - `_handle_fork()` - Manages chain reorganization when longer fork is detected
+  - `chain_to_dict()` / `chain_from_dict()` - Serialization for network transfer
+  - `get_blocks_after()` / `get_missing_blocks()` - Selective block synchronization
+  - `get_vote_tally()` - Counts votes for each candidate from blockchain
+
 - `transaction.py`: Transaction model and integrity checks. Potential attributes and methods:
 
   - `voter_id`: str
