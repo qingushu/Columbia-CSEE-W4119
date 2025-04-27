@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import time 
-from streamlit_autorefresh import st_autorefresh
+import time
 
 class ClientUi:
     def __init__(self, client):
