@@ -6,10 +6,11 @@ import sys
 class Client:
     def __init__(self, client_network_port, client_addr, 
                        server_addr, server_port):
-        self.peer = None
+        self.peer_port = client_network_port
+        self.peer_addr = client_addr
         self.blockchain = None
         self.ballot_options = ['A', 'B', 'C'] # Dummy for testing. TODO: Change to None
-        self.ui = ClientUi(client_network_port, client_addr, self.ballot_options, self.blockchain)
+        self.ui = ClientUi(self)
 
 if __name__ == '__main__':
     client_network_port = int(sys.argv[1]) # port nubmer for p2p communication

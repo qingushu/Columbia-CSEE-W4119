@@ -3,12 +3,8 @@ import pandas as pd
 import time 
 
 class ClientUi:
-    def __init__(self, peer_port, peer_addr, ballot_options=None, blockchain=None, peer=None):
-        self.peer_port = peer_port
-        self.peer_addr = peer_addr
-        self.ballot_options = ballot_options
-        self.blockchain = blockchain
-        self.peer = peer
+    def __init__(self, client):
+        self.client = client 
 
     def run_ui(self):
 
@@ -48,10 +44,10 @@ class ClientUi:
         with st.container(border=True):
             col1, col2 = st.columns(2)
             with col1: 
-                st.write(f"**Peer Port:** {self.peer_port}")
+                st.write(f"**Peer Port:** {self.client.peer_port}")
             with col2:
-                st.write(f"**Peer IP Address:** {self.peer_addr}")
-        while not self.ballot_options:
+                st.write(f"**Peer IP Address:** {self.client.peer_addr}")
+        while not self.client.ballot_options:
             with st.spinner(text="Awaiting ballot from tracker..."):
                 time.sleep(100) # Run spinner until ballot arrives
         else: 
@@ -64,7 +60,7 @@ class ClientUi:
                     with st.container(border=True):
                         self.display_total_votes()
                 with col2:
-                    self.display_voting_options(self.ballot_options)
+                    self.display_voting_options(self.client.ballot_options)
         
     def display_total_votes(self):
         st.write("**:material/Query_Stats: Total votes**")
@@ -139,18 +135,18 @@ class ClientUi:
             }
         ]
 
-        self.blockchain = dummy_blockchain
+        self.client.blockchain = dummy_blockchain
 
-        if not self.blockchain:
+        if not self.client.blockchain:
             st.info("Blockchain is empty.")
             return
 
         blockchain_html = """<div style="display: flex; overflow-x: auto; padding: 1rem;">"""
 
-        for i, block_data in enumerate(self.blockchain):
+        for i, block_data in enumerate(self.client.blockchain):
             block_html = self.get_block_html(block_data, hex_colors[i%2], hex_colors[(i+1)%2])
             blockchain_html += block_html
-            if i < len(self.blockchain) - 1: # Add lines between blocks
+            if i < len(self.client.blockchain) - 1: # Add lines between blocks
                 blockchain_html += """
 <div style='flex: 0 0 auto; width: 20px; height: 2.5px; background-color: #ccc; margin: 0 0.5rem; align-self: center;'></div>
 """
@@ -190,6 +186,6 @@ class ClientUi:
                 # self.peer.submit_vote(vote_id, selected_candidate) 
 
     def check_blockchain_updated(self):
-        if self.blockchain and len(self.blockchain) != st.session_state.get('last_blockchain_length', 0):
-            st.session_state['last_blockchain_length'] = len(self.blockchain)
+        if self.client.blockchain and len(self.client.blockchain) != st.session_state.get('last_blockchain_length', 0):
+            st.session_state['last_blockchain_length'] = len(self.client.blockchain)
             st.experimental_rerun()
