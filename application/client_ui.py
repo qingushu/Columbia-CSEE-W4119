@@ -17,21 +17,26 @@ class ClientUi:
             page_icon="🗳️",
         )
         
-        st.title("Decentralized Voting App")
+        st.title(":material/How_To_Vote: Decentralized Voting App")
         st.subheader("Secure Peer-to-Peer Blockchain Voting")
 
-        st.markdown("""
-            This system allows voters to submit ballots securely through a peer-to-peer (P2P) blockchain network.
-            Ballots are requested from a server.
-            Each vote is recorded as a block, mined, added to the local blockchain, and broadcasted to all peers.
+        with st.container():
+            col1, col2 = st.columns(2)
+            with col1: 
+                st.markdown("""
+                            Voters can submit ballots securely through a peer-to-peer (P2P) blockchain network with this app. 
+                            Ballots are requested from a server. 
+                            Each vote is recorded as a block, mined, added to the local blockchain, and broadcasted to all peers.""")
+            with col2:
+                st.markdown("""
+                            <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+                            <ul style="list-style-type: none; padding-left: 0;">
+                                <li><span class="material-icons" style="vertical-align: middle;">ballot</span>  Cast your vote securely and anonymously.</li>
+                                <li><span class="material-icons" style="vertical-align: middle;">polyline</span>  View the local blockchain of votes.</li>
+                                <li><span class="material-icons" style="vertical-align: middle;">query_stats</span>  See real-time aggregated voting results.</li>
+                            </ul>
+                            """, unsafe_allow_html=True)
 
-            **Key Features:**
-            - :material/Ballot:  Cast your vote securely and anonymously.
-            - :material/Polyline:  View the local blockchain of votes.
-            - :material/Query_Stats: See real-time aggregated voting results.
-        """)
-
-        # st.write("This application allows voters to cast ballots for server-side predefined candidates. Simply input your Voter ID, select your candidate, and submit your vote. The local blockchain is also displayed in real-time as blocks are added.")
         st.write('')
         # self.ballot_options = None
 
