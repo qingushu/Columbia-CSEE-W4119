@@ -1,13 +1,14 @@
-import socket
+ import socket
 import threading
 import json
+import sys
 
 class TrackerServer:
-    def __init__(self, host='0.0.0.0', port=5000, voting_options=None):
+    def __init__(self, host='0.0.0.0', port=5000, ballot_provider=None):
         self.host = host
         self.port = port
         self.peers = {}  # {peer_address: timestamp}
-        self.voting_options = voting_options or ["Alice", "Bob", "Charlie"]
+        self.get_ballot_options = ballot_provider
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((self.host, self.port))
 
@@ -28,6 +29,8 @@ class TrackerServer:
                 elif message_type == "LEAVE_PEER":
                     if addr in self.peers:
                         del self.peers[addr]
+                elif message_type == "REQUEST_BALLOT":
+                    self.send_ballot_options(addr)
             except Exception as e:
                 print(f"[Tracker] Error: {e}")
 
@@ -35,15 +38,30 @@ class TrackerServer:
         peer_list = [f"{ip}:{port}" for (ip, port) in self.peers.keys()]
         payload = {
             "type": "REGISTER_ACK",
-            "voting_options": self.voting_options,
             "peer_list": peer_list
         }
         self.sock.sendto(json.dumps(payload).encode(), addr)
 
+    def send_ballot_options(self, addr):
+        options = self.get_ballot_options() if self.get_ballot_options else []
+        payload = {
+            "type": "BALLOT_OPTIONS",
+            "voting_options": options
+        }
+        self.sock.sendto(json.dumps(payload).encode(), addr)
+
+# Only used when running directly
 if __name__ == "__main__":
-    tracker = TrackerServer(host="0.0.0.0", port=5000)
+    def dummy_ballot():
+        return ["Alice", "Bob", "Charlie"]
+
+    if len(sys.argv) != 2:
+        print("Usage: python tracker_server.py <port>")
+        sys.exit(1)
+
+    port = int(sys.argv[1])
+    tracker = TrackerServer(host="0.0.0.0", port=port, ballot_provider=dummy_ballot)
     tracker.initialize()
 
-    # Keep main thread alive
     while True:
         pass
