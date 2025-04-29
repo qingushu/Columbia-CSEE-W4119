@@ -157,7 +157,7 @@ Each peer:
   - `mine_block()` - Creates and mines a new block with given transactions
   - `is_valid_proof()` - Verifies block hash satisfies difficulty requirement
   - `is_valid_chain()` - Validates entire blockchain for integrity
-  - `replace_chain()` - Implements longest chain rule for fork resolution
+  - `consensus()` - Implements longest chain rule for fork resolution
   - `_process_orphans()` - Connects orphaned blocks when their parent arrives
   - `_handle_fork()` - Manages chain reorganization when longer fork is detected
   - `chain_to_dict()` / `chain_from_dict()` - Serialization for network transfer
