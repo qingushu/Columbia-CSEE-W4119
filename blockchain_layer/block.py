@@ -1,7 +1,7 @@
 import hashlib
 import json
 import time
-from blockchain.transaction import Transaction
+from transaction import Transaction
 
 class Block:
     """
