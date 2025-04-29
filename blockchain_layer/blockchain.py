@@ -118,7 +118,7 @@ class Blockchain:
 
         if (block_hash.startswith('0' * self.difficulty) and
                 block_hash == block.compute_hash()):
-            print(f"the block{block.index} satisfies the difficulty criteria")
+            #print(f"the block{block.index} satisfies the difficulty criteria")
             return True
         else:
             print(f"the block{block.index} does not satisfy the difficulty criteria")

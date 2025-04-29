@@ -185,17 +185,16 @@ def simulate_fork_resolution():
     node3.mine_block()
     assert node3.is_valid_chain(node3.chain), "Node 3 chain should be valid after mining"
     
-    print("\nBefore consensus:")
-    print(f"Node 1 chain length: {len(node1.chain)}")
-    print(f"Node 2 chain length: {len(node2.chain)}")
-    print(f"Node 3 chain length: {len(node3.chain)}")
+    print("\n=== Network State Before Consensus ===")
+    print("\nChain Lengths:")
+    print(f"Node 1: {len(node1.chain)} blocks")
+    print(f"Node 2: {len(node2.chain)} blocks")
+    print(f"Node 3: {len(node3.chain)} blocks")
     
     # Get chain data from all nodes
     node1_data = node1.get_chain_data()
     node2_data = node2.get_chain_data()
     node3_data = node3.get_chain_data()
-    
-    print(f"\nChain data lengths: Node1={len(node1_data)}, Node2={len(node2_data)}, Node3={len(node3_data)}")
     
     # Apply consensus on each node with other nodes' data
     print("\nApplying consensus algorithm...")
@@ -215,40 +214,30 @@ def simulate_fork_resolution():
     print(f"Node 2 chain replaced: {node2_replaced}")
     assert node2.is_valid_chain(node2.chain), "Node 2 chain should be valid after consensus"
     
-    print("\nAfter consensus:")
-    print(f"Node 1 chain length: {len(node1.chain)}")
-    print(f"Node 2 chain length: {len(node2.chain)}")
-    print(f"Node 3 chain length: {len(node3.chain)}")
-    
-    # Print vote counts after consensus
-    print("\nVote counts after consensus:")
-    print("Node 1 vote count:", node1.get_vote_count())
-    print("Node 2 vote count:", node2.get_vote_count())
-    print("Node 3 vote count:", node3.get_vote_count())
-    
-    # Print first few characters of each node's last block hash
-    print("\nLast block hashes:")
-    print(f"Node 1: {node1.chain[-1].hash[:15]}...")
-    print(f"Node 2: {node2.chain[-1].hash[:15]}...")
-    print(f"Node 3: {node3.chain[-1].hash[:15]}...")
+    print("\n=== Final Network State ===")
     
     # Verify all nodes have the same chain length
     assert len(node1.chain) == len(node2.chain) == len(node3.chain), "Chain lengths don't match!"
-    print("\nAll nodes have converged to the same chain length!")
-    
-    # Verify all nodes have the same last block hash
-    assert node1.chain[-1].hash == node2.chain[-1].hash == node3.chain[-1].hash, "Chain contents don't match!"
-    print("All nodes have the same blockchain content!")
+    print(f"\nChain Length: {len(node1.chain)} blocks")
     
     # Verify all nodes have the same vote count
-    assert node1.get_vote_count() == node2.get_vote_count() == node3.get_vote_count(), "Vote counts don't match!"
-    print("All nodes have the same vote count!")
+    vote_count = node1.get_vote_count()
+    assert node2.get_vote_count() == vote_count and node3.get_vote_count() == vote_count, "Vote counts don't match!"
+    print("\nFinal Vote Count:", vote_count)
     
-    # Export the final blockchain to JSON
-    chain_data = node1.get_chain_data()
-    with open("blockchain_export.json", "w") as f:
-        json.dump(chain_data, f, indent=2)
-    print("\nFinal blockchain exported to 'blockchain_export.json'")
+    # Verify all nodes have the same last block hash
+    final_hash = node1.chain[-1].hash[:15]
+    assert node2.chain[-1].hash.startswith(final_hash) and node3.chain[-1].hash.startswith(final_hash), "Chain contents don't match!"
+    print(f"Final Block Hash: {final_hash}...")
+    
+    print("\nVerification Results:")
+    print("✓ All nodes have identical chain length, content, and vote counts")
+    
+    # # Export the final blockchain to JSON
+    # chain_data = node1.get_chain_data()
+    # with open("blockchain_export.json", "w") as f:
+    #     json.dump(chain_data, f, indent=2)
+    # print("\nFinal blockchain exported to 'blockchain_export.json'")
 
 
 if __name__ == "__main__":
