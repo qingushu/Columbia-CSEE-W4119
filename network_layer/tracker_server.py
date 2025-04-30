@@ -1,4 +1,4 @@
- import socket
+import socket
 import threading
 import json
 import sys
@@ -14,7 +14,9 @@ class TrackerServer:
 
     def initialize(self):
         print(f"[Tracker] Listening on {self.host}:{self.port}")
-        threading.Thread(target=self.listen_for_peers, daemon=True).start()
+        self.listen_thread = threading.Thread(target=self.listen_for_peers, daemon=True)
+        self.listen_thread.start()
+        # threading.Thread(target=self.listen_for_peers, daemon=True).start()
 
     def listen_for_peers(self):
         while True:
@@ -26,11 +28,13 @@ class TrackerServer:
                 if message_type == "REGISTER_PEER":
                     self.peers[addr] = threading.get_native_id()
                     self.send_register_ack(addr)
+                    print(f"[Tracker] Registered peer")
                 elif message_type == "LEAVE_PEER":
                     if addr in self.peers:
                         del self.peers[addr]
                 elif message_type == "REQUEST_BALLOT":
                     self.send_ballot_options(addr)
+                    print(f"[Tracker] Sent ballot")
             except Exception as e:
                 print(f"[Tracker] Error: {e}")
 

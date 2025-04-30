@@ -1,5 +1,7 @@
 # server.py
-import sys
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from network_layer.tracker_server import TrackerServer
 
 class Server:
