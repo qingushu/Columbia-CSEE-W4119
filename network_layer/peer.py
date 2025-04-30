@@ -4,37 +4,25 @@ import json
 import sys
 import time
 
+
 class Peer:
-    def __init__(self, tracker_port, local_port):
-        self.tracker_host = '127.0.0.1'   # Fixed tracker host
+    def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
+        self.tracker_addr = tracker_addr   # Fixed tracker host
         self.tracker_port = tracker_port
-        self.local_host = '0.0.0.0'
+        self.local_addr = local_addr
         self.local_port = local_port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind((self.local_host, self.local_port))
+        self.sock.bind((self.local_addr, self.local_port))
         self.peers = set()
-        self.voting_options = []
+        self.client_instance = client_instance
         self.blockchain = []  # A list of blocks (each block contains one vote)
 
-    def connect(self):
-        # Step 1: Register with Tracker
-        payload = {"type": "REGISTER_PEER"}
-        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_host, self.tracker_port))
-        
-        # Step 2: Receive peer list
-        data, _ = self.sock.recvfrom(4096)
-        message = json.loads(data.decode())
-        if message.get("type") == "REGISTER_ACK":
-            peer_addresses = message.get("peer_list", [])
-            for p in peer_addresses:
-                self.peers.add(p)
-            print(f"[Peer] Connected. Current peers: {self.peers}")
-        
-        # Step 3: Request voting ballot options
-        self.request_ballot_options()
+        self.listen_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
+        self.listen_thread.start()
 
-    def listen(self):
-        threading.Thread(target=self.listen_for_messages, daemon=True).start()
+    def connect(self):
+        payload = {"type": "REGISTER_PEER"}
+        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
 
     def listen_for_messages(self):
         while True:
@@ -43,23 +31,34 @@ class Peer:
                 message = json.loads(data.decode())
                 message_type = message.get("type")
 
-                if message_type == "NEW_BLOCK":
+                if message_type == "REGISTER_ACK":
+                    peer_addresses = message.get("peer_list", [])
+                    for p in peer_addresses:
+                        self.peers.add(p)
+                    print(f"[Peer] Registered with tracker.")
+
+                elif message_type == "NEW_BLOCK":
                     block = message.get("block")
                     self.handle_new_block(block)
+
                 elif message_type == "REQUEST_CHAIN":
                     self.send_chain(addr)
+
                 elif message_type == "CHAIN_RESPONSE":
                     chain = message.get("chain")
                     self.sync_chain(chain)
+
                 elif message_type == "BALLOT_OPTIONS":
-                    self.voting_options = message.get("voting_options", [])
-                    print(f"[Peer] Received voting options: {self.voting_options}")
+                    print(f"[Peer] Received voting options: {message.get("voting_options")}")
+                    self.client_instance.update_ballot(message.get("voting_options",[]))
+
+                time.sleep(0.01)
             except Exception as e:
                 print(f"[Peer] Error: {e}")
 
     def request_ballot_options(self):
         payload = {"type": "REQUEST_BALLOT"}
-        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_host, self.tracker_port))
+        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
 
     def submit_vote(self, vote_transaction, mining_function):
         # Mine a new block immediately with the vote
