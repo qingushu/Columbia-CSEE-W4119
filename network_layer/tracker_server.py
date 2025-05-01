@@ -32,7 +32,13 @@ class TrackerServer:
                 elif message_type == "LEAVE_PEER":
                     if addr in self.peers:
                         del self.peers[addr]
+                        print(f"[Tracker] Peer {addr} removed")
+                    else:
+                        print(f"[Tracker] Ignore LEAVE_PEER from unknown {addr}")
                 elif message_type == "REQUEST_BALLOT":
+                    if addr not in self.peers:
+                        print(f"[Tracker] Rejecting REQUEST_BALLOT from unregistered {addr}")
+                        continue
                     self.send_ballot_options(addr)
                     print(f"[Tracker] Sent ballot")
             except Exception as e:

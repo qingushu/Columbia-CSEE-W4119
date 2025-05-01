@@ -3,7 +3,9 @@ import threading
 import json
 import sys
 import time
-
+from blockchain_layer.blockchain import Blockchain
+from blockchain_layer.transaction import Transaction
+from blockchain_layer.block import block_from_dict
 
 class Peer:
     def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
@@ -16,13 +18,26 @@ class Peer:
         self.peers = set()
         self.client_instance = client_instance
         self.blockchain = []  # A list of blocks (each block contains one vote)
-
+        
+        self.blockchain_obj = Blockchain(difficulty=2) # Initialize the blockchain with a difficulty of 2   
         self.listen_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
         self.listen_thread.start()
 
     def connect(self):
+       # Send register request
         payload = {"type": "REGISTER_PEER"}
         self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+
+        # Wait for REGISTER_ACK
+        while not self.has_registered:
+            time.sleep(0.1)
+
+        # Request ballot
+        self.request_ballot_options()
+
+        # Wait for ballot
+        while self.voting_options is None:
+            time.sleep(0.1)
 
     def listen_for_messages(self):
         while True:
@@ -60,12 +75,20 @@ class Peer:
         payload = {"type": "REQUEST_BALLOT"}
         self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
 
-    def submit_vote(self, vote_transaction, mining_function):
-        # Mine a new block immediately with the vote
-        new_block = mining_function(vote_transaction, self.blockchain)
-        if new_block:
-            self.blockchain.append(new_block)
-            self.broadcast_block(new_block)
+    def submit_vote(self, vote_transaction):
+        
+        tx_obj = Transaction(
+            voter_id=vote_transaction["voter_id"],
+            candidate_id=vote_transaction["candidate_id"],
+            timestamp=vote_transaction["timestamp"]
+        )
+
+        self.blockchain_obj.add_new_transaction(tx_obj)
+        mined = self.blockchain_obj.mine_block()
+
+        if mined:
+            block_dict = self.blockchain_obj.get_last_block_dict()
+            self.broadcast_block(block_dict)
 
     def broadcast_block(self, block):
         block_message = {
@@ -76,12 +99,18 @@ class Peer:
             ip, port = peer.split(":")
             self.sock.sendto(json.dumps(block_message).encode(), (ip, int(port)))
 
-    def handle_new_block(self, block):
-        if self.validate_block(block):
-            self.blockchain.append(block)
-            print(f"[Peer] New valid block added: {block}")
+    def handle_new_block(self, block_dict):
+        
+
+        block_obj = block_from_dict(block_dict)
+        proof = block_obj.hash
+
+        added = self.blockchain_obj.add_block(block_obj, proof)
+
+        if added:
+            print("[Peer] Valid block added")
         else:
-            print("[Peer] Received invalid block, requesting full chain sync...")
+            print("[Peer] Invalid block, requesting chain sync")
             self.request_chain()
 
     def validate_block(self, block):
