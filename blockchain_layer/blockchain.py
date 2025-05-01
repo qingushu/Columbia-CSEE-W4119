@@ -206,13 +206,13 @@ class Blockchain:
             chain_data.append(block_dict)
         return chain_data
 
-    def consensus(self, chain_dumps_from_peers):
+    def update_chain(self, chain_dicts_from_peers):
         """
         Implements the consensus algorithm.
         Resolves conflicts by accepting the longest valid chain from peers.
         
         Args:
-            chain_dumps_from_peers (list): List of chain data from different peers
+            chain_dicts_from_peers (list): List of chain data from different peers
                 Each item is a list of dictionaries representing blocks
                 
         Returns:
@@ -222,14 +222,14 @@ class Blockchain:
         current_len = len(self.chain)
         
         # Find the longest valid chain among all peers
-        for chain_dump in chain_dumps_from_peers:
+        for chain_dict in chain_dicts_from_peers:
             try:
                 # Skip if this is our own chain (same genesis block and same length or shorter)
-                if len(chain_dump) <= len(self.chain) and chain_dump[0]['hash'] == self.chain[0].hash:
+                if len(chain_dict) <= len(self.chain) and chain_dict[0]['hash'] == self.chain[0].hash:
                     continue
                 
-                # Create a blockchain from the chain dump
-                temp_blockchain = self.create_chain_from_dump(chain_dump)
+                # Create a blockchain from the chain dict
+                temp_blockchain = self.create_chain_from_dict(chain_dict)
                 
                 # Get the length of this chain
                 chain_length = len(temp_blockchain.chain)
@@ -269,25 +269,25 @@ class Blockchain:
         return False
 
 
-    def create_chain_from_dump(self, chain_dump):
+    def create_chain_from_dict(self, chain_dict):
         """
         Recreates a blockchain from a list of dictionaries representing blocks.
         Useful when receiving chain data from other nodes.
         
         Args:
-            chain_dump (list): List of dictionaries with block data
+            chain_dict (list): List of dictionaries with block data
             
         Returns:
             temp_blockchain: A blockchain instance with the reconstructed chain
             
         Raises:
-            Exception: If the chain dump is invalid
+            Exception: If the chain dict is invalid
         """
-        # Create a blockchain from the chain dump
+        # Create a blockchain from the chain dict
         temp_blockchain = Blockchain()
         
-        # Rebuild the chain manually from the dump(dicts)
-        for idx, block_data in enumerate(chain_dump):
+        # Rebuild the chain manually from the dict
+        for idx, block_data in enumerate(chain_dict):
             if idx == 0:
                 # Recreate genesis block
                 temp_blockchain.chain = []  # Clear the default genesis block
@@ -350,3 +350,51 @@ class Blockchain:
                         vote_count[candidate_id] = 1
         
         return vote_count
+
+    def get_last_block_dict(self):
+        """
+        Returns the last block in the chain as a dictionary representation.
+        Useful for broadcasting the newly mined block to peers.
+        
+        Returns:
+            dict: Dictionary representation of the last block.
+        """
+        last_block = self.last_block
+        block_dict = {
+            'index': last_block.index,
+            'transactions': [tx.to_dict() for tx in last_block.transactions],
+            'timestamp': last_block.timestamp,
+            'previous_hash': last_block.previous_hash,
+            'nonce': last_block.nonce,
+            'hash': last_block.hash
+        }
+        return block_dict
+
+def block_from_dict(block_dict):
+    """
+    Reconstruct a Block object from a dictionary representation.
+    
+    Args:
+        block_dict (dict): Dictionary containing block data.
+        
+    Returns:
+        Block: Reconstructed Block object.
+    """
+    transactions = []
+    for tx_data in block_dict.get('transactions', []):
+        transaction = Transaction(
+            voter_id=tx_data.get('voter_id'),
+            candidate_id=tx_data.get('candidate_id'),
+            timestamp=tx_data.get('timestamp')
+        )
+        transactions.append(transaction)
+    
+    block = Block(
+        index=block_dict.get('index'),
+        transactions=transactions,
+        timestamp=block_dict.get('timestamp'),
+        previous_hash=block_dict.get('previous_hash'),
+        nonce=block_dict.get('nonce', 0)
+    )
+    block.hash = block_dict.get('hash')
+    return block

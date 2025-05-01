@@ -1,255 +1,157 @@
 import time
-import json
 from blockchain import Blockchain
 from transaction import Transaction
+from block import Block
+from test_helpers import print_chain
+from blockchain import block_from_dict
 
-def print_chain(blockchain):
-    """Helper function to print blockchain details."""
-    print("\n==== BLOCKCHAIN ====")
-    print(f"Chain length: {len(blockchain.chain)}")
-    
-    for i, block in enumerate(blockchain.chain):
-        print(f"\nBlock #{i}:")
-        print(f"  Timestamp: {block.timestamp}")
-        print(f"  Previous Hash: {block.previous_hash[:15]}...")
-        print(f"  Hash: {block.hash[:15]}...")
-        print(f"  Nonce: {block.nonce}")
-        print(f"  Transactions: {len(block.transactions)}")
-        
-        for j, tx in enumerate(block.transactions):
-            print(f"    Transaction #{j}:")
-            print(f"      Voter: {tx.voter_id}")
-            print(f"      Candidate: {tx.candidate_id}")
-            print(f"      Time: {tx.timestamp}")
+def test_single_block_propagation_and_fork_resolution():
+    print("=== Test: Single Block Propagation and Fork Resolution with Network Simulation ===")
 
-def print_vote_count(blockchain):
-    """Helper function to print the vote count from blockchain."""
-    print("\n==== VOTE COUNT ====")
-    vote_count = blockchain.get_vote_count()
-    
-    if not vote_count:
-        print("No votes recorded yet.")
-        return
-        
-    total_votes = sum(vote_count.values())
-    print(f"Total votes: {total_votes}")
-    
-    # Print votes for each candidate
-    for candidate, count in sorted(vote_count.items(), key=lambda x: x[1], reverse=True):
-        percentage = (count / total_votes) * 100
-        print(f"{candidate}: {count} votes ({percentage:.1f}%)")
-
-def simulate_node():
-    """Simulates a voting node in the network."""
-    # Create a new blockchain
-    print("Creating a new blockchain node...")
-    blockchain = Blockchain()
-    
-    # Print the genesis block
-    print("\nGenesis block created:")
-    print_chain(blockchain)
-    assert blockchain.is_valid_chain(blockchain.chain), "Genesis block should be valid"
-    
-    # Add some transactions (votes)
-    print("\nAdding votes...")
-    blockchain.add_new_transaction(Transaction("voter123", "candidateA"))
-    blockchain.add_new_transaction(Transaction("voter456", "candidateB"))
-    blockchain.add_new_transaction(Transaction("voter789", "candidateA"))
-    
-    # Print unconfirmed transactions
-    print(f"Unconfirmed votes: {len(blockchain.unconfirmed_transactions)}")
-    for tx in blockchain.unconfirmed_transactions:
-        print(f"  {tx.voter_id} voted for {tx.candidate_id}")
-    
-    # Mine a block
-    print("\nMining votes into a block...")
-    mining_result = blockchain.mine_block()
-    
-    if mining_result:
-        print("Block successfully mined!")
-        assert blockchain.is_valid_chain(blockchain.chain), "Chain should be valid after mining"
-    else:
-        print("No transactions to mine!")
-    
-    # Print the updated chain
-    print_chain(blockchain)
-    
-    # Print vote count after first block
-    print_vote_count(blockchain)
-    assert len(blockchain.get_vote_count()) == 2, "Should have votes for 2 candidates"
-    assert blockchain.get_vote_count()["candidateA"] == 2, "Candidate A should have 2 votes"
-    assert blockchain.get_vote_count()["candidateB"] == 1, "Candidate B should have 1 vote"
-    
-    # Add more votes
-    print("\nAdding more votes...")
-    blockchain.add_new_transaction(Transaction("voter101", "candidateC"))
-    blockchain.add_new_transaction(Transaction("voter202", "candidateA"))
-    
-    # Mine another block
-    print("\nMining more votes into a block...")
-    blockchain.mine_block()
-    print_chain(blockchain)
-    assert blockchain.is_valid_chain(blockchain.chain), "Chain should be valid after second mining"
-    
-    # Print updated vote count
-    print_vote_count(blockchain)
-    assert len(blockchain.get_vote_count()) == 3, "Should have votes for 3 candidates"
-    assert blockchain.get_vote_count()["candidateA"] == 3, "Candidate A should have 3 votes"
-    assert blockchain.get_vote_count()["candidateB"] == 1, "Candidate B should still have 1 vote"
-    assert blockchain.get_vote_count()["candidateC"] == 1, "Candidate C should have 1 vote"
-    
-    # Test chain validation
-    print("\nValidating blockchain...")
-    is_valid = blockchain.is_valid_chain(blockchain.chain) 
-    print(f"Is blockchain valid? {is_valid}")
-    assert is_valid == True, "Blockchain should be valid"
-    
-    return blockchain
-
-def test_tamper_resistance():
-    """Test the blockchain's resistance to tampering."""
-    print("\n==== TESTING TAMPER RESISTANCE ====")
-    
-    # Create a blockchain with a single block
-    blockchain = Blockchain()
-    blockchain.add_new_transaction(Transaction("voter1", "candidateA"))
-    blockchain.add_new_transaction(Transaction("voter2", "candidateB"))
-    blockchain.mine_block()
-    
-    # Print the original state
-    print("\nOriginal blockchain:")
-    print_chain(blockchain)
-    print_vote_count(blockchain)
-    
-    # Validate the blockchain
-    print("\nValidating original blockchain...")
-    is_valid = blockchain.is_valid_chain(blockchain.chain)  
-    print(f"Is blockchain valid? {is_valid}")
-    assert is_valid == True, "Original blockchain should be valid"
-    
-    # Tamper with the blockchain
-    print("\nTampering with the blockchain (changing a vote)...")
-    blockchain.chain[1].transactions[0].candidate_id = "candidateC"
-    
-    # Print the tampered state
-    print("\nTampered blockchain:")
-    print_chain(blockchain)
-    
-    # This direct count bypasses validation to show what the tampered count would be
-    print("\nTampered vote count (not using blockchain.get_vote_count()):...")
-    
-    # Validate the tampered blockchain
-    print("\nValidating tampered blockchain...")
-    is_valid = blockchain.is_valid_chain(blockchain.chain)  
-    print(f"Is blockchain valid? {is_valid}")
-    assert is_valid == False, "Tampered blockchain should be invalid"
-    
-    return blockchain
-
-def simulate_fork_resolution():
-    """Simulates a fork in the blockchain and its resolution."""
-    print("\n==== SIMULATING NETWORK FORK RESOLUTION ====")
-    
-    # Create three nodes with identical genesis blocks
-    print("Creating three blockchain nodes...")
+    # Create node1 with genesis + 1 block
     node1 = Blockchain()
-    node2 = Blockchain()
-    node3 = Blockchain()
-    
-    # Ensure all nodes have the same genesis block hash
-    genesis_hash = node1.chain[0].hash
-    print(f"Genesis block hash: {genesis_hash[:10]}...")
-    assert node1.is_valid_chain(node1.chain), "Node 1 genesis chain should be valid"
-    assert node2.is_valid_chain(node2.chain), "Node 2 genesis chain should be valid"
-    assert node3.is_valid_chain(node3.chain), "Node 3 genesis chain should be valid"
-    
-    # Node 1 mines a block
-    print("\nNode 1 processes votes...")
-    node1.add_new_transaction(Transaction("district1_voter1", "candidateA"))
-    node1.add_new_transaction(Transaction("district1_voter2", "candidateB"))
+    node1.add_new_transaction(Transaction("voter1", "candidateA"))
     node1.mine_block()
-    assert node1.is_valid_chain(node1.chain), "Node 1 chain should be valid after mining"
-    
-    # Node 2 mines two blocks (will become the longest chain)
-    print("\nNode 2 processes votes...")
-    node2.add_new_transaction(Transaction("district2_voter1", "candidateC"))
-    node2.mine_block()
-    node2.add_new_transaction(Transaction("district2_voter2", "candidateA"))
-    node2.mine_block()
-    assert node2.is_valid_chain(node2.chain), "Node 2 chain should be valid after mining"
-    
-    # Node 3 mines one block but with different transactions
-    print("\nNode 3 processes votes...")
-    node3.add_new_transaction(Transaction("district3_voter1", "candidateB"))
-    node3.add_new_transaction(Transaction("district3_voter2", "candidateB"))
-    node3.mine_block()
-    assert node3.is_valid_chain(node3.chain), "Node 3 chain should be valid after mining"
-    
-    print("\n=== Network State Before Consensus ===")
-    print("\nChain Lengths:")
-    print(f"Node 1: {len(node1.chain)} blocks")
-    print(f"Node 2: {len(node2.chain)} blocks")
-    print(f"Node 3: {len(node3.chain)} blocks")
-    
-    # Get chain data from all nodes
-    node1_data = node1.get_chain_data()
-    node2_data = node2.get_chain_data()
-    node3_data = node3.get_chain_data()
-    
-    # Apply consensus on each node with other nodes' data
-    print("\nApplying consensus algorithm...")
-    
-    # Node 1 receives chains from Node 2 and Node 3
-    node1_replaced = node1.consensus([node2_data, node3_data])
-    print(f"Node 1 chain replaced: {node1_replaced}")
-    assert node1.is_valid_chain(node1.chain), "Node 1 chain should be valid after consensus"
-    
-    # Node 3 receives chains from Node 1 and Node 2
-    node3_replaced = node3.consensus([node1_data, node2_data])
-    print(f"Node 3 chain replaced: {node3_replaced}")
-    assert node3.is_valid_chain(node3.chain), "Node 3 chain should be valid after consensus"
-    
-    # Node 2 receives chains from Node 1 and Node 3
-    node2_replaced = node2.consensus([node1_data, node3_data])
-    print(f"Node 2 chain replaced: {node2_replaced}")
-    assert node2.is_valid_chain(node2.chain), "Node 2 chain should be valid after consensus"
-    
-    print("\n=== Final Network State ===")
-    
-    # Verify all nodes have the same chain length
-    assert len(node1.chain) == len(node2.chain) == len(node3.chain), "Chain lengths don't match!"
-    print(f"\nChain Length: {len(node1.chain)} blocks")
-    
-    # Verify all nodes have the same vote count
-    vote_count = node1.get_vote_count()
-    assert node2.get_vote_count() == vote_count and node3.get_vote_count() == vote_count, "Vote counts don't match!"
-    print("\nFinal Vote Count:", vote_count)
-    
-    # Verify all nodes have the same last block hash
-    final_hash = node1.chain[-1].hash[:15]
-    assert node2.chain[-1].hash.startswith(final_hash) and node3.chain[-1].hash.startswith(final_hash), "Chain contents don't match!"
-    print(f"Final Block Hash: {final_hash}...")
-    
-    print("\nVerification Results:")
-    print("✓ All nodes have identical chain length, content, and vote counts")
-    
-    # # Export the final blockchain to JSON
-    # chain_data = node1.get_chain_data()
-    # with open("blockchain_export.json", "w") as f:
-    #     json.dump(chain_data, f, indent=2)
-    # print("\nFinal blockchain exported to 'blockchain_export.json'")
+    print("Node 1 chain after mining 1 block:")
+    print_chain(node1)
+    assert len(node1.chain) == 2, "Node 1 should have 2 blocks (genesis + 1)"
 
+    # Create node2 with genesis + 2 blocks (longer chain)
+    node2 = Blockchain()
+    node2.add_new_transaction(Transaction("voter2", "candidateB"))
+    node2.mine_block()
+    node2.add_new_transaction(Transaction("voter3", "candidateC"))
+    node2.mine_block()
+    print("Node 2 chain after mining 2 blocks:")
+    print_chain(node2)
+    assert len(node2.chain) == 3, "Node 2 should have 3 blocks (genesis + 2)"
+
+    # Simulate node2 sending last block dict to node1 (single block propagation)
+    node2_last_block_dict = node2.get_last_block_dict()
+    node2_last_block = block_from_dict(node2_last_block_dict)
+    node2_last_block_proof = node2_last_block.hash
+
+    print("\nNode 1 attempts to add Node 2's last block (single block propagation) from dict...")
+    add_block_result = node1.add_block(node2_last_block, node2_last_block_proof)
+    print(f"Add block result: {add_block_result}")
+
+    # If single block add fails but PoW is valid, do full chain sync (fork resolution)
+    if not add_block_result and node2_last_block.hash.startswith('0' * node1.difficulty):
+        print("Single block addition failed but PoW is valid, performing full chain sync and fork resolution on Node 1...")
+        node2_chain_data = node2.get_chain_data()
+        fork_resolved = node1.update_chain([node2_chain_data])
+        print(f"Fork resolution result: {fork_resolved}")
+
+    print(f"Node 1 chain length after sync: {len(node1.chain)}")
+    assert len(node1.chain) == len(node2.chain), "Node 1 chain length should match Node 2 after sync"
+    assert node1.is_valid_chain(node1.chain), "Node 1 chain should be valid after sync"
+
+    # Test simpler case: Node1 mines a new block
+    print("\nNode 1 mines a new block (simpler case)...")
+    node1.add_new_transaction(Transaction("voter4", "candidateD"))
+    mine_result = node1.mine_block()
+    print(f"Mining result: {mine_result}")
+    assert mine_result, "Mining should succeed"
+    assert node1.is_valid_chain(node1.chain), "Chain should be valid after mining"
+    print_chain(node1)
+
+def test_malicious_block_addition():
+    print("=== Test: Local Malicious Block Addition without Network Simulation ===")
+
+    node = Blockchain()
+    node.add_new_transaction(Transaction("voter1", "candidateA"))
+    node.mine_block()
+    print("Original chain:")
+    print_chain(node)
+
+    # Create a malicious block dict with incorrect previous_hash
+    last_block_dict = node.get_last_block_dict()
+    malicious_block_dict = last_block_dict.copy()
+    malicious_block_dict['index'] += 1
+    malicious_block_dict['previous_hash'] = "fake_previous_hash"
+    malicious_block_dict['transactions'] = [{
+        'voter_id': "maliciousVoter",
+        'candidate_id': "maliciousCandidate",
+        'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+    }]
+    # Recompute hash with PoW simulation
+    malicious_block = block_from_dict(malicious_block_dict)
+    nonce = 0
+    proof = malicious_block.compute_hash()
+    while not proof.startswith('0' * node.difficulty):
+        malicious_block.nonce = nonce
+        proof = malicious_block.compute_hash()
+        nonce += 1
+    malicious_block.hash = proof
+
+    print("\nAttempting to add malicious block with incorrect previous_hash from dict...")
+    add_result = node.add_block(malicious_block, proof)
+    print(f"Add malicious block result: {add_result}")
+    assert not add_result, "Malicious block should not be added"
+    assert node.is_valid_chain(node.chain), "Chain should remain valid after rejecting malicious block"
+
+def test_malicious_chain_addition():
+    print("=== Test: Malicious Chain Addition with Network Simulation ===")
+
+    node = Blockchain()
+    node.add_new_transaction(Transaction("voter1", "candidateA"))
+    node.mine_block()
+    print("Original chain:")
+    print_chain(node)
+
+    # Create a malicious chain data with invalid block
+    malicious_chain = node.get_chain_data()
+    # Tamper with the second block's previous_hash to be invalid
+    if len(malicious_chain) > 1:
+        malicious_chain[1]['previous_hash'] = "fake_previous_hash"
+
+    print("\nAttempting to replace chain with malicious chain data...")
+    replaced = node.update_chain([malicious_chain])
+    print(f"Chain replaced with malicious chain? {replaced}")
+    assert not replaced, "Chain should not be replaced with malicious chain"
+    assert node.is_valid_chain(node.chain), "Chain should remain valid after rejecting malicious chain"
+
+def test_successful_single_block_propagation():
+    print("=== Test: Successful Single Block Propagation with Network Simulation ===")
+
+    # Create node1 with genesis + 1 block
+    node1 = Blockchain()
+    node1.add_new_transaction(Transaction("voter1", "candidateA"))
+    node1.mine_block()
+    print("Node 1 chain after mining 1 block:")
+    print_chain(node1)
+    assert len(node1.chain) == 2, "Node 1 should have 2 blocks (genesis + 1)"
+
+    # Create node2 with same chain as node1 + 1 block
+    node2 = Blockchain()
+    # Sync node2 chain with node1 chain data
+    node1_chain_data = node1.get_chain_data()
+    node2.update_chain([node1_chain_data])
+    # Add one more block to node2
+    node2.add_new_transaction(Transaction("voter2", "candidateB"))
+    node2.mine_block()
+    print("Node 2 chain after mining 1 additional block:")
+    print_chain(node2)
+    assert len(node2.chain) == 3, "Node 2 should have 3 blocks (genesis + 2)"
+
+    # Simulate node2 sending last block dict to node1 (single block propagation)
+    node2_last_block_dict = node2.get_last_block_dict()
+    node2_last_block = block_from_dict(node2_last_block_dict)
+    node2_last_block_proof = node2_last_block.hash
+
+    print("\nNode 1 attempts to add Node 2's last block (single block propagation) from dict...")
+    add_block_result = node1.add_block(node2_last_block, node2_last_block_proof)
+    print(f"Add block result: {add_block_result}")
+    assert add_block_result, "Single block addition should succeed"
+    assert len(node1.chain) == len(node2.chain) - 1 + 1, "Node 1 chain length should increase by 1"
+    assert node1.is_valid_chain(node1.chain), "Node 1 chain should be valid after single block addition"
+
+    print("No fork resolution needed as single block addition succeeded.")
 
 if __name__ == "__main__":
-    print("===== BLOCKCHAIN VOTING SYSTEM DEMO =====")
-    
-    # Simulate basic blockchain operations
-    blockchain = simulate_node()
-    
-    # Test tamper resistance
-    tampered_blockchain = test_tamper_resistance()
-    
-    # Simulate a network with fork resolution
-    simulate_fork_resolution()
-    
-    print("\nDemo completed successfully!")
+    print("===== Running Blockchain Tests with Network Simulation =====")
+    test_single_block_propagation_and_fork_resolution()
+    test_malicious_block_addition()
+    test_malicious_chain_addition()
+    test_successful_single_block_propagation()
+    print("\nAll tests completed successfully.")
