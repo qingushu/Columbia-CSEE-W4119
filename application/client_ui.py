@@ -59,7 +59,7 @@ class ClientUi:
         with st.container(border=True):
             st.write("**:material/Query_Stats: Total votes**")
 
-            votes = st.session_state['client'].peer.blockchain
+            votes = st.session_state['client'].peer.blockchain_obj.get_vote_count()
             if not votes: 
                 st.info("No votes yet.")
                 return
