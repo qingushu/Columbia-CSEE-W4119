@@ -5,7 +5,7 @@ import sys
 import time
 from blockchain_layer.blockchain import Blockchain
 from blockchain_layer.transaction import Transaction
-from blockchain_layer.block import block_from_dict
+from blockchain_layer.blockchain import block_from_dict
 
 class Peer:
     def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
@@ -18,7 +18,8 @@ class Peer:
         self.peers = set()
         self.client_instance = client_instance
         self.blockchain = []  # A list of blocks (each block contains one vote)
-        
+        self.has_registered = False
+        self.voting_options = None
         self.blockchain_obj = Blockchain(difficulty=2) # Initialize the blockchain with a difficulty of 2   
         self.listen_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
         self.listen_thread.start()
@@ -45,11 +46,12 @@ class Peer:
                 data, addr = self.sock.recvfrom(4096)
                 message = json.loads(data.decode())
                 message_type = message.get("type")
-
                 if message_type == "REGISTER_ACK":
+                    # Register with tracker
                     peer_addresses = message.get("peer_list", [])
                     for p in peer_addresses:
                         self.peers.add(p)
+                    self.has_registered = True
                     print(f"[Peer] Registered with tracker.")
 
                 elif message_type == "NEW_BLOCK":
@@ -64,7 +66,7 @@ class Peer:
                     self.sync_chain(chain)
 
                 elif message_type == "BALLOT_OPTIONS":
-                    print(f"[Peer] Received voting options: {message.get("voting_options")}")
+                    print(f"[Peer] Received voting options: {message.get('voting_options')}")
                     self.client_instance.update_ballot(message.get("voting_options",[]))
 
                 time.sleep(0.01)
