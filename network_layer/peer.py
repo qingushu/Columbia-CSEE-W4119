@@ -11,59 +11,50 @@ from enum import Enum
 
 class PeerState(Enum):
     INIT = 1
-    REGISTERED = 2
+    REGISTERING = 2
     CONNECTED = 3
-    CASTING_BALLOT = 4
+    REQUESTING_BALLOT = 4
+    CONNECTED_WITH_BALLOT = 5
 
 class Peer:
     def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
         self.tracker_addr = tracker_addr   # Fixed tracker host
         self.tracker_port = tracker_port
+        
         self.local_addr = local_addr
         self.local_port = local_port
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((self.local_addr, self.local_port))
+        self.sock.settimeout(0.5)
+
         self.peers = set()
-        self.client_instance = client_instance
+        self.client_instance = client_instance # To acccess app APIs
         self.blockchain = []  # A list of blocks (each block contains one vote)
         self.has_registered = False
         self.voting_options = None
         self.blockchain_obj = Blockchain(difficulty=2) # Initialize the blockchain with a difficulty of 2   
+        
         self.state = PeerState.INIT
-        self.listen_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
-        self.listen_thread.start()
 
-    def connect(self):
-       # Send register request
-        payload = {"type": "REGISTER_PEER"}
-        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+        self.message_handler_thread = threading.Thread(target=self.message_handler, daemon=True)
+        self.message_handler_thread.start()
 
-        # wait until state moves past INIT
-        while self.state == PeerState.INIT:
-            time.sleep(0.1)
-
-        # request ballot
-        self.request_ballot_options()
-
-        # wait until connected
-        while self.state != PeerState.CONNECTED:
-            time.sleep(0.1)
-            
-        print("[Peer] Ready for casting ballot")
-
-    def listen_for_messages(self):
+    def message_handler(self):
         while True:
             try:
                 data, addr = self.sock.recvfrom(4096)
                 message = json.loads(data.decode())
                 message_type = message.get("type")
-                if message_type == "REGISTER_ACK":
+
+                if message_type == "REGISTER_ACK" and self.state == PeerState.REGISTERING:
                     # Register with tracker
                     peer_addresses = message.get("peer_list", [])
                     for p in peer_addresses:
+                        # TODO: should ignore itself
                         self.peers.add(p)
                     self.has_registered = True
-                    self.state = PeerState.REGISTERED
+                    self.state = PeerState.CONNECTED
                     print(f"[Peer] Registered with tracker.")
 
                 elif message_type == "NEW_BLOCK":
@@ -77,28 +68,71 @@ class Peer:
                     chain = message.get("chain")
                     self.sync_chain(chain)
 
-                elif message_type == "BALLOT_OPTIONS":
-                    self.state = PeerState.CONNECTED
+                elif message_type == "BALLOT_OPTIONS" and self.state == PeerState.REQUESTING_BALLOT:
+                    self.state = PeerState.CONNECTED_WITH_BALLOT
                     print(f"[Peer] Received voting options: {message.get('voting_options')}")
                     self.client_instance.update_ballot(message.get("voting_options",[]))
+                
+                elif message_type == "UPDATE_PEERS":
+                    new_peers = message.get("peer_list", [])
+                    # TODO: Should ignore itself
+                    self.peers = new_peers
 
-                time.sleep(0.01)
+                # TODO: Add new message type where it needs to update peers list
+
+            except socket.timeout:
+                if self.state == PeerState.REGISTERING:
+                    payload = {"type": "REGISTER_PEER"}
+                    self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+                    print("[Peer] Ready for casting ballot")
+                elif self.state == PeerState.REQUESTING_BALLOT:
+                    payload = {"type": "REQUEST_BALLOT"}
+                    self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+                    print("[Peer] Ready for casting ballot")
+
             except Exception as e:
                 print(f"[Peer] Error: {e}")
 
     def request_ballot_options(self):
-        payload = {"type": "REQUEST_BALLOT"}
-        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+        '''
+        Application API.
 
-    def submit_vote(self, vote_transaction):
+        Blocking until ballot is received.
+        Called from applicaiton layer.
+        '''
+        self.state = PeerState.REQUESTING_BALLOT
+
+        while self.state == PeerState.REQUESTING_BALLOT:
+            time.sleep(0.1)
+
+        print("[Peer] Ready for casting ballot")
+
+        return
+
+    def connect(self):
+        '''
+        Application API. 
         
-        tx_obj = Transaction(
-            voter_id=vote_transaction["voter_id"],
-            candidate_id=vote_transaction["candidate_id"],
-            timestamp=vote_transaction["timestamp"]
-        )
+        Blocking until connected and registered with tracker.
+        Changes peer state. Called by application layer
+        to initiate connection. 
+        '''
+        self.state = PeerState.REGISTERING
 
-        self.blockchain_obj.add_new_transaction(tx_obj)
+        while self.state == PeerState.REGISTERING:
+            time.sleep(0.1)
+
+        print("[Peer] Registered with tracker.")
+        return
+    
+    def submit_vote(self, vote_transaction):
+        '''
+        Application API. 
+        
+        Called by application layer
+        to submit ballot.
+        '''
+        self.blockchain_obj.add_new_transaction(vote_transaction)
         mined = self.blockchain_obj.mine_block()
 
         if mined:

@@ -79,19 +79,19 @@ class ClientUi:
 
             st.write("**:material/Polyline: Local Blockchain**")
 
-            if not st.session_state['client'].peer.blockchain:
+            blockchain_data = st.session_state['client'].peer.blockchain_obj.get_chain_data()
+            if not blockchain_data:
                 st.info("Blockchain is empty.")
                 return
 
             blockchain_html = """<div style="display: flex; overflow-x: auto; padding: 1rem;">"""
-
-            for i, block_data in enumerate(st.session_state['client'].peer.blockchain):
+            for i, block_data in enumerate(blockchain_data):
                 block_html = self.get_block_html(block_data, hex_colors[i%2], hex_colors[(i+1)%2])
                 blockchain_html += block_html
-                if i < len(st.session_state['client'].peer.blockchain) - 1: # Add lines between blocks
+                if i < len(blockchain_data) - 1: # Add lines between blocks
                     blockchain_html += """
-    <div style='flex: 0 0 auto; width: 20px; height: 2.5px; background-color: #ccc; margin: 0 0.5rem; align-self: center;'></div>
-    """
+<div style='flex: 0 0 auto; width: 20px; height: 2.5px; background-color: #ccc; margin: 0 0.5rem; align-self: center;'></div>
+"""
 
             blockchain_html += "</div>"
             # Render
@@ -99,11 +99,12 @@ class ClientUi:
     
     def get_block_html(self, block, prev_hash_color, hash_color):
 
+        # TODO: Add in the transaction information
         return f"""
 <div style='flex: 0 0 auto; width: 200px; border: 0px solid #ccc; padding: 1rem; border-radius: 12.5px; background-color: #f0f2f6;'>
     <p><b>Block {block['index']}</b></p>
-    <p><b>Voter ID:</b> {block['voter_id']}</p>
-    <p><b>Candidate:</b> {block['selected_candidate']}</p>
+    <p><b>Timestamp:</b> {block['timestamp']}</p>
+    <p><b>Nonce:</b> {block['nonce']}</p>
     <p><b>Prev Hash:</b> <span style='color: {prev_hash_color};'>{block['previous_hash']}</span></p>
     <p><b>Curr Hash:</b> <span style='color: {hash_color};'>{block['hash']}</span></p>
 </div>
@@ -133,4 +134,4 @@ class ClientUi:
                     st.toast('Ballot submitted. Initiating mining + broadcasting...', icon=":material/check:")
                     transaction = Transaction(voter_id, selected_candidate)
                     # TODO: Submit the vote
-                    # st.session['client'].peer.submit_vote(transaction, ) 
+                    st.session_state['client'].peer.submit_vote(transaction) 

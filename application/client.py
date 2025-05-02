@@ -36,13 +36,13 @@ if __name__ == '__main__':
         client = Client(client_network_port, client_addr, server_addr, server_port)
         st.session_state['client'] = client
 
-    st.session_state['client'].peer.connect() # Initiate connection
-
-    while st.session_state['client'].ballot_options == None: # Request ballot until received
-        st.session_state['client'].peer.request_ballot_options()
-        time.sleep(1)
+        # Due to the nature of Streamlit UI, the entire code in __name__ == '__main__' is rerun upon 
+        # Clicking on UI elements. Moving these two lines here ensures they are only called once.
+        st.session_state['client'].peer.connect() # Initiate connection once
+        st.session_state['client'].peer.request_ballot_options() # 
     
-    st.session_state['client'].ui.run_ui() # Run the UI after ballot has been received
 
+    st.session_state['client'].ui.run_ui() # Run the UI after ballot has been received
+    st.write(st.session_state['client'].peer.blockchain_obj.get_chain_data())
 
     
