@@ -7,6 +7,14 @@ from blockchain_layer.blockchain import Blockchain
 from blockchain_layer.transaction import Transaction
 from blockchain_layer.blockchain import block_from_dict
 
+from enum import Enum
+
+class PeerState(Enum):
+    INIT = 1
+    REGISTERED = 2
+    CONNECTED = 3
+    CASTING_BALLOT = 4
+
 class Peer:
     def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
         self.tracker_addr = tracker_addr   # Fixed tracker host
@@ -21,6 +29,7 @@ class Peer:
         self.has_registered = False
         self.voting_options = None
         self.blockchain_obj = Blockchain(difficulty=2) # Initialize the blockchain with a difficulty of 2   
+        self.state = PeerState.INIT
         self.listen_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
         self.listen_thread.start()
 
@@ -29,16 +38,18 @@ class Peer:
         payload = {"type": "REGISTER_PEER"}
         self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
 
-        # Wait for REGISTER_ACK
-        while not self.has_registered:
+        # wait until state moves past INIT
+        while self.state == PeerState.INIT:
             time.sleep(0.1)
 
-        # Request ballot
+        # request ballot
         self.request_ballot_options()
 
-        # Wait for ballot
-        while self.voting_options is None:
+        # wait until connected
+        while self.state != PeerState.CONNECTED:
             time.sleep(0.1)
+            
+        print("[Peer] Ready for casting ballot")
 
     def listen_for_messages(self):
         while True:
@@ -52,6 +63,7 @@ class Peer:
                     for p in peer_addresses:
                         self.peers.add(p)
                     self.has_registered = True
+                    self.state = PeerState.REGISTERED
                     print(f"[Peer] Registered with tracker.")
 
                 elif message_type == "NEW_BLOCK":
@@ -66,6 +78,7 @@ class Peer:
                     self.sync_chain(chain)
 
                 elif message_type == "BALLOT_OPTIONS":
+                    self.state = PeerState.CONNECTED
                     print(f"[Peer] Received voting options: {message.get('voting_options')}")
                     self.client_instance.update_ballot(message.get("voting_options",[]))
 
