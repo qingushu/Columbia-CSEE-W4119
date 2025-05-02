@@ -1,8 +1,8 @@
 from hashlib import sha256
 import json
 import time
-from .block import Block
-from .transaction import Transaction
+from block import Block
+from transaction import Transaction
 
 class Blockchain:
     """
