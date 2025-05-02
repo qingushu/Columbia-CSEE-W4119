@@ -185,6 +185,32 @@ class Blockchain:
 
         self.unconfirmed_transactions = []
         return True
+    
+    def mine_malicious_block(self):
+        """
+        Interface to add pending transactions to the blockchain
+        by adding them to a block and finding a valid proof of work.
+        
+        Returns:
+            bool: True if mining was successful, False if no transactions to mine
+        """
+        if not self.unconfirmed_transactions:
+            return False
+
+        last_block = self.last_block
+
+        new_block = Block(
+            index=last_block.index + 1,
+            transactions=self.unconfirmed_transactions,
+            timestamp=time.strftime("%Y-%m-%d %H:%M:%S"),
+            previous_hash=last_block.hash
+        )
+
+        proof = self.proof_of_work(new_block)
+        self.add_block(new_block, proof)
+        self.chain[-1].hash = "malicious_previous_hash"
+        self.unconfirmed_transactions = []
+        return True
 
     def get_chain_data(self):
         """
