@@ -132,6 +132,11 @@ class Peer:
         Called by application layer
         to submit ballot.
         '''
+        # First → sync with peers to make sure we’re on longest chain
+        self.request_chain()
+        time.sleep(2)  # wait for responses
+
+        # Proceed to add vote and mine
         self.blockchain_obj.add_new_transaction(vote_transaction)
         mined = self.blockchain_obj.mine_block()
 
@@ -149,11 +154,14 @@ class Peer:
             self.sock.sendto(json.dumps(block_message).encode(), (ip, int(port)))
 
     def handle_new_block(self, block_dict):
-        
-
         block_obj = block_from_dict(block_dict)
-        proof = block_obj.hash
 
+        # NEW FIX: skip if already have a block with same index
+        if block_obj.index <= self.blockchain_obj.last_block.index:
+            print(f"[Peer] Skipping received block {block_obj.index}, already have block at that index")
+            return
+
+        proof = block_obj.hash
         added = self.blockchain_obj.add_block(block_obj, proof)
 
         if added:
@@ -177,14 +185,25 @@ class Peer:
     def send_chain(self, addr):
         payload = {
             "type": "CHAIN_RESPONSE",
-            "chain": self.blockchain
+            "chain": self.blockchain_obj.get_chain_data() 
         }
         self.sock.sendto(json.dumps(payload).encode(), addr)
 
     def sync_chain(self, received_chain):
-        if len(received_chain) > len(self.blockchain):
-            self.blockchain = received_chain
-            print("[Peer] Synced chain from network.")
+        new_chain = []
+        for block_dict in received_chain:
+            new_chain.append(block_from_dict(block_dict))
+
+        if len(new_chain) > len(self.blockchain_obj.chain):
+            # validate new chain
+            is_valid = self.blockchain_obj.is_valid_chain(new_chain)
+            if is_valid:
+                self.blockchain_obj.chain = new_chain
+                print("[Peer] Synced chain from network (accepted longer valid chain).")
+            else:
+                print("[Peer] Received invalid chain → ignored.")
+        else:
+            print("[Peer] Received chain but it’s not longer → ignored.")
 
     def leave_network(self):
         payload = {"type": "LEAVE_PEER"}
