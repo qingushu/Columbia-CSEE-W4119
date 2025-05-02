@@ -133,8 +133,8 @@ class Peer:
         to submit ballot.
         '''
         # First → sync with peers to make sure we’re on longest chain
-        self.request_chain()
-        time.sleep(2)  # wait for responses
+        #self.request_chain()
+        #time.sleep(2)  # wait for responses
 
         # Proceed to add vote and mine
         self.blockchain_obj.add_new_transaction(vote_transaction)
@@ -157,9 +157,13 @@ class Peer:
         block_obj = block_from_dict(block_dict)
 
         # NEW FIX: skip if already have a block with same index
-        if block_obj.index <= self.blockchain_obj.last_block.index:
-            print(f"[Peer] Skipping received block {block_obj.index}, already have block at that index")
-            return
+        if block_obj.index < len(self.blockchain_obj.chain):
+            local_block = self.blockchain_obj.chain[block_obj.index]
+            if local_block.hash != block_obj.hash:
+                print(f"[Peer] Detected fork at block {block_obj.index}! Requesting chain sync...")
+                self.request_chain()
+            else:
+                print(f"[Peer] Received duplicate block {block_obj.index}, ignoring.")
 
         proof = block_obj.hash
         added = self.blockchain_obj.add_block(block_obj, proof)
