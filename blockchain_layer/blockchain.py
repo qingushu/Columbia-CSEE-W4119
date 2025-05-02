@@ -209,6 +209,7 @@ class Blockchain:
         proof = self.proof_of_work(new_block)
         self.add_block(new_block, proof)
         self.chain[-1].hash = "malicious_previous_hash"
+        self.chain[-1].nounce = 0
         self.unconfirmed_transactions = []
         return True
 
