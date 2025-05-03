@@ -192,7 +192,7 @@ class Blockchain:
         by adding them to a block and finding a valid proof of work.
         
         Returns:
-            bool: True if mining was successful, False if no transactions to mine
+            bool: True this malicious mining is successful
         """
         if not self.unconfirmed_transactions:
             return False

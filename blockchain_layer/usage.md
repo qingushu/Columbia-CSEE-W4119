@@ -35,6 +35,40 @@ Ensure you run this command from the `blockchain_layer` dir or provide the corre
 
 ## Usage Examples
 
+### Malicious Block Addition and propagation rejection Simulation
+
+```python
+def test_malicious_block_addition():
+    print("=== Test: Malicious Block Addition Network Simulation ===")
+
+    # Create a blockchain and mine a malicious block
+    node = Blockchain()
+    node.add_new_transaction(Transaction("voter1", "candidateA"))
+    node.mine_malicious_block() # Forcefully append a malicious block onto local chain
+    malicious_block = node.last_block
+    print("Malicious block mined on node:")
+    print(f"Block index: {malicious_block.index}, previous_hash: {malicious_block.previous_hash}, hash: {malicious_block.hash}")
+
+    # Create a new clean blockchain instance
+    node2 = Blockchain()
+
+    # Attempt to add the malicious block to the new blockchain
+    print("\nAttempting to add malicious block to a new blockchain instance...")
+    add_result = node2.add_block(malicious_block, malicious_block.hash)
+    print(f"Add malicious block result: {add_result}")
+    assert not add_result, "Malicious block should not be added to a clean blockchain"
+
+    # The malicious block chain on node should be invalid
+    is_valid = node.is_valid_chain(node.chain)
+    print(f"Is the malicious chain valid? {is_valid}")
+    assert not is_valid, "Malicious chain should be invalid"
+
+    # The clean blockchain should remain valid
+    is_valid_clean = node2.is_valid_chain(node2.chain)
+    print(f"Is the clean blockchain valid? {is_valid_clean}")
+    assert is_valid_clean, "Clean blockchain should remain valid"
+```
+
 ### Single Block Propagation and Fork Resolution
 
 ```python
