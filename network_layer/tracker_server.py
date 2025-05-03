@@ -28,7 +28,12 @@ class TrackerServer:
                 if message_type == "REGISTER_PEER":
                     self.peers[addr] = threading.get_native_id()
                     self.send_register_ack(addr)
+
                     print(f"[Tracker] Registered peer ({addr[0]} : {addr[1]})")
+                    
+                    self.broadcast_updated_peers_list()
+                    print(f"[Tracker] Broadcasted updated peers list to all registered peers")
+
                 elif message_type == "LEAVE_PEER":
                     if addr in self.peers:
                         del self.peers[addr]
@@ -60,6 +65,20 @@ class TrackerServer:
             "voting_options": options
         }
         self.sock.sendto(json.dumps(payload).encode(), addr)
+    
+    def broadcast_updated_peers_list(self):
+        peer_list = [f"{ip}:{port}" for (ip, port) in self.peers.keys()]
+        payload = {
+            "type": "UPDATE_PEERS",
+            "peer_list": peer_list
+        }
+        for peer_addr in self.peers.keys():
+            try:
+                self.sock.sendto(json.dumps(payload).encode(), peer_addr)
+                print(f"[Tracker] Sent updated peer list to {peer_addr[0]}:{peer_addr[1]}")
+            except Exception as e:
+                print(f"[Tracker] Failed to send updated peer list to {peer_addr}: {e}")
+
 
 # Only used when running directly
 if __name__ == "__main__":

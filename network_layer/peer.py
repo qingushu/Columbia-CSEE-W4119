@@ -143,9 +143,11 @@ class Peer:
 
         # Proceed to add vote and mine
         self.blockchain_obj.add_new_transaction(vote_transaction)
+        print("[Peer] Adding transaction to new block and initiating mining...")
         mined = self.blockchain_obj.mine_block()
 
         if mined:
+            print("[Peer] Successfully mined newly added block.")
             block_dict = self.blockchain_obj.get_last_block_dict()
             self.broadcast_block(block_dict)
 
@@ -172,9 +174,16 @@ class Peer:
             "type": "NEW_BLOCK",
             "block": block
         }
+        
+        print(f"[Peer] Broadcasting to {self.peers}")
         for peer in self.peers:
-            ip, port = peer.split(":")
-            self.sock.sendto(json.dumps(block_message).encode(), (ip, int(port)))
+            try:
+                ip, port = peer.split(":")
+                port = int(port)
+                self.sock.sendto(json.dumps(block_message).encode(), (ip, port))
+                print(f"[Peer] Broadcasted block to {ip}:{port}")
+            except Exception as e:
+                print(f"[Peer] Failed to broadcast to {peer}: {e}")
 
     def handle_new_block(self, block_dict):
         block_obj = block_from_dict(block_dict)
