@@ -15,6 +15,8 @@ class PeerState(Enum):
     CONNECTED = 3
     REQUESTING_BALLOT = 4
     CONNECTED_WITH_BALLOT = 5
+    LEAVING = 6
+    CLOSED = 7
 
 class Peer:
     def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
@@ -40,12 +42,17 @@ class Peer:
         self.message_handler_thread = threading.Thread(target=self.message_handler, daemon=True)
         self.message_handler_thread.start()
 
+        self.broadcasting_and_listening_enabled = True
+
     def message_handler(self):
         while True:
             try:
-                data, addr = self.sock.recvfrom(4096)
+                data, addr = self.sock.recvfrom(65535) # Assumption: Entire blockchain must fit within max UDP Packet size
                 message = json.loads(data.decode())
                 message_type = message.get("type")
+
+                if not self.broadcasting_and_listening_enabled:
+                    continue
 
                 if message_type == "REGISTER_ACK" and self.state == PeerState.REGISTERING:
                     # Register with tracker
@@ -76,17 +83,15 @@ class Peer:
                     self.peers = {p for p in new_peers if p != f"{self.local_addr}:{self.local_port}"}
                     print(f"[Peer] Updated peer list: {self.peers}")
 
-                # TODO: Add new message type where it needs to update peers list
-
             except socket.timeout:
                 if self.state == PeerState.REGISTERING:
                     payload = {"type": "REGISTER_PEER"}
                     self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
-                    print("[Peer] Ready for casting ballot")
+                    print("[Peer] Sent request to register with tracker...")
                 elif self.state == PeerState.REQUESTING_BALLOT:
                     payload = {"type": "REQUEST_BALLOT"}
                     self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
-                    print("[Peer] Ready for casting ballot")
+                    print("[Peer] Sent ballot request to tracker...")
 
             except Exception as e:
                 print(f"[Peer] Error: {e}")
@@ -120,6 +125,8 @@ class Peer:
         while self.state == PeerState.REGISTERING:
             time.sleep(0.1)
 
+        self.request_chain() # Peer should request longest chain
+
         print("[Peer] Registered with tracker.")
         return
     
@@ -142,7 +149,25 @@ class Peer:
             block_dict = self.blockchain_obj.get_last_block_dict()
             self.broadcast_block(block_dict)
 
+    def leave_network(self):
+        '''
+        Application API. 
+        
+        Called by application layer leave network.
+        '''
+        payload = {"type": "LEAVE_PEER"}
+        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+
+        self.state = PeerState.CLOSED;
+
+        print("[Peer] Sent LEAVE_PEER to tracker. Closing peer...")
+        return
+
     def broadcast_block(self, block):
+        if not self.broadcasting_and_listening_enabled:
+            print("[Peer] Broadcasting is disabled. Skipping broadcast.")
+            return
+        
         block_message = {
             "type": "NEW_BLOCK",
             "block": block
@@ -207,9 +232,22 @@ class Peer:
         else:
             print("[Peer] Received chain but it’s not longer → ignored.")
 
-    def leave_network(self):
-        payload = {"type": "LEAVE_PEER"}
-        self.sock.sendto(json.dumps(payload).encode(), (self.tracker_host, self.tracker_port))
+    def set_broadcasting_and_listening(self, enable):
+        '''
+        Application API. 
+
+        Not part of main application/network layer logic. 
+        Used solely for demo purposes to enable/disable 
+        broadcasting and listening to demonstrate forking
+        mechanism.
+        '''
+
+        self.broadcasting_and_listening_enabled = enable
+
+        if enable:
+            print("[Peer] Broadcasting and listening enabled.")
+        else:
+            print("[Peer] Broadcasting and listening disabled.")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

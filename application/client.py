@@ -41,8 +41,5 @@ if __name__ == '__main__':
         st.session_state['client'].peer.connect() # Initiate connection once
         st.session_state['client'].peer.request_ballot_options() # 
     
-
     st.session_state['client'].ui.run_ui() # Run the UI after ballot has been received
-    st.write(st.session_state['client'].peer.blockchain_obj.get_chain_data())
 
-    

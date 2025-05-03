@@ -14,7 +14,11 @@ class ClientUi:
         st.set_page_config(
             page_title="Decentralized Voting App",
             page_icon="🗳️",
+            initial_sidebar_state="collapsed"
         )
+
+        if 'disable_broadcasting_and_listening' not in st.session_state:
+            st.session_state['disable_broadcasting_and_listening'] = False 
         
         st.title(":orange[:material/How_To_Vote: Decentralized Voting App]")
         st.subheader("Secure Peer-to-Peer Blockchain Voting")
@@ -53,6 +57,33 @@ class ClientUi:
                 self.display_total_votes()
             with col2:
                 self.display_voting_options()
+        
+        st.divider()
+
+        if st.button("Leave + Terminate"):
+            if hasattr(st.session_state['client'], 'peer'):
+                st.session_state['client'].peer.leave_network()
+            st.toast("Terminating the app...", icon=":material/close:")
+            os._exit(0)
+        
+        with st.sidebar:
+            st.subheader("Developer/Demo Settings")
+
+            st.divider()
+
+            disable_broadcasting_and_listening = st.toggle("Disable Peer Broadcasting + Listening")
+            
+            st.write("")
+
+            if st.button(":material/Add: Malicious Block"):
+                return
+            
+            if disable_broadcasting_and_listening != st.session_state['disable_broadcasting_and_listening']:
+                st.session_state['disable_broadcasting_and_listening'] = disable_broadcasting_and_listening
+                if disable_broadcasting_and_listening:
+                    st.session_state['client'].peer.set_broadcasting_and_listening(False)
+                else:
+                    st.session_state['client'].peer.set_broadcasting_and_listening(True)
 
     @st.fragment(run_every="0.5s")
     def display_total_votes(self):
@@ -130,7 +161,7 @@ class ClientUi:
         with st.form("ballot"):
             st.write("**:material/Ballot: Cast your vote**")
 
-            voter_id = st.text_input("Enter your vote ID:")
+            voter_id = st.text_input("Enter your Voter ID:")
             selected_candidate = st.pills("Select candidate:", options, selection_mode = "single")
 
             if not options:

@@ -28,11 +28,12 @@ class TrackerServer:
                 if message_type == "REGISTER_PEER":
                     self.peers[addr] = threading.get_native_id()
                     self.send_register_ack(addr)
-                    print(f"[Tracker] Registered peer")
+                    print(f"[Tracker] Registered peer ({addr[0]} : {addr[1]})")
                 elif message_type == "LEAVE_PEER":
                     if addr in self.peers:
                         del self.peers[addr]
-                        print(f"[Tracker] Peer {addr} removed")
+                        current_peers = [f"({peer[0]} : {peer[1]})" for peer in self.peers.keys()] 
+                        print(f"[Tracker] Peer {addr} removed. Current peers: {', '.join(current_peers)}")
                     else:
                         print(f"[Tracker] Ignore LEAVE_PEER from unknown {addr}")
                 elif message_type == "REQUEST_BALLOT":
