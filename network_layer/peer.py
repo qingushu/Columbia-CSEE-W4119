@@ -258,6 +258,26 @@ class Peer:
         else:
             print("[Peer] Broadcasting and listening disabled.")
 
+    def add_malicious_block_and_broadcast(self):
+        '''
+        Application API. 
+
+        Not part of main application/network layer logic. 
+        Used solely for demo purposes to demonstrate handling of malicious blocks.
+        '''
+        malicious_transaction = Transaction("malicious_voter", "malicious_candidate")
+        self.blockchain_obj.add_new_transaction(malicious_transaction)
+        self.blockchain_obj.mine_malicious_block()
+        malicious_block = self.blockchain_obj.last_block
+
+        print("[Peer] Added and mined malicious block to local blockchain")
+        print(f"[Peer] Malicious block index: {malicious_block.index}, previous_hash: {malicious_block.previous_hash}")
+
+        malicious_block_dict = self.blockchain_obj.get_last_block_dict()
+        self.broadcast_block(malicious_block_dict)
+        print("[Peer] Broadcasted malicious block.")
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python peer.py <tracker_port> <local_port>")

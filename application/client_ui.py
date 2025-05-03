@@ -76,7 +76,7 @@ class ClientUi:
             st.write("")
 
             if st.button(":material/Add: Malicious Block"):
-                return
+                st.session_state['client'].peer.add_malicious_block_and_broadcast()
             
             if disable_broadcasting_and_listening != st.session_state['disable_broadcasting_and_listening']:
                 st.session_state['disable_broadcasting_and_listening'] = disable_broadcasting_and_listening
