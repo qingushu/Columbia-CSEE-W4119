@@ -38,6 +38,8 @@ class Peer:
         self.blockchain_obj = Blockchain(difficulty=2) # Initialize the blockchain with a difficulty of 2   
         
         self.state = PeerState.INIT
+        self.temp_chain = {}  # {index: Block}
+        self.temp_total_blocks = None
 
         self.message_handler_thread = threading.Thread(target=self.message_handler, daemon=True)
         self.message_handler_thread.start()
@@ -82,8 +84,31 @@ class Peer:
                     new_peers = message.get("peer_list", [])
                     self.peers = {p for p in new_peers if p != f"{self.local_addr}:{self.local_port}"}
                     print(f"[Peer] Updated peer list: {self.peers}")
+
                 elif message_type == "POKE":
                     self.heartbeat_response()
+
+                elif message_type == "CHAIN_BLOCK":
+                    block_dict = message["block"]
+                    index = message["index"]
+                    total_blocks = message["total_blocks"]
+
+                    # store incoming block
+                    self.temp_chain[index] = block_from_dict(block_dict)
+                    self.temp_total_blocks = total_blocks
+
+                    print(f"[Peer] Received block {index}/{total_blocks - 1}")
+
+                    # check if we got all blocks
+                    if len(self.temp_chain) == self.temp_total_blocks:
+                        # rebuild chain from collected blocks
+                        new_chain = [self.temp_chain[i] for i in sorted(self.temp_chain.keys())]
+                        self.blockchain_obj.chain = new_chain
+                        print("[Peer] Chain synced from peer")
+
+                        # cleanup
+                        self.temp_chain.clear()
+                        self.temp_total_blocks = None
 
             except socket.timeout:
                 if self.state == PeerState.REGISTERING:
@@ -217,11 +242,25 @@ class Peer:
             self.sock.sendto(json.dumps(payload).encode(), (ip, int(port)))
 
     def send_chain(self, addr):
-        payload = {
-            "type": "CHAIN_RESPONSE",
-            "chain": self.blockchain_obj.get_chain_data() 
+        total_blocks = len(self.blockchain_obj.chain)
+        for i, block in enumerate(self.blockchain_obj.chain):
+            payload = {
+                "type": "CHAIN_BLOCK",
+                "index": i,
+                "block": self.block_to_dict(block),
+                "total_blocks": total_blocks
+            }
+            self.sock.sendto(json.dumps(payload).encode(), addr)
+    
+    def block_to_dict(self, block):
+        return {
+            'index': block.index,
+            'transactions': [tx.to_dict() for tx in block.transactions],
+            'timestamp': block.timestamp,
+            'previous_hash': block.previous_hash,
+            'nonce': block.nonce,
+            'hash': block.hash
         }
-        self.sock.sendto(json.dumps(payload).encode(), addr)
 
     def sync_chain(self, received_chain):
         new_chain = []
