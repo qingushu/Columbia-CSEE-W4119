@@ -98,17 +98,31 @@ class ClientUi:
             st.markdown(blockchain_html, unsafe_allow_html=True)
     
     def get_block_html(self, block, prev_hash_color, hash_color):
+        transactions = block['transactions']
+        transaction_html = "<p>None</p>"
 
-        # TODO: Add in the transaction information
+        if transactions != []:
+            transaction_data = transactions[0] # Get first transaction only since one block will only store one transaction
+            transaction_html = f"""
+<p><b>Voter ID:</b> {transaction_data.get('voter_id', '')}</p>
+<p><b>Candidate ID:</b> {transaction_data.get('candidate_id', '')}</p>
+<p><b>Transaction timestamp:</b> {transaction_data.get('timestamp', '')}</p>"""
+
         return f"""
-<div style='flex: 0 0 auto; width: 200px; border: 0px solid #ccc; padding: 1rem; border-radius: 12.5px; background-color: #f0f2f6;'>
+<div style='flex: 0 0 auto; width: 250px; border: 0px solid #ccc; padding: 1rem; border-radius: 12.5px; background-color: #f0f2f6;'>
     <p><b>Block {block['index']}</b></p>
-    <p><b>Timestamp:</b> {block['timestamp']}</p>
+    <p><b>Block timestamp:</b> {block['timestamp']}</p>
     <p><b>Nonce:</b> {block['nonce']}</p>
+    <details>
+        <summary style="cursor: pointer; margin-bottom: 1rem;"><b>Transaction Details</b></summary>
+        <div style='padding-left: 10px;'>
+            {transaction_html}
+        </div>
+    </details>
     <p><b>Prev Hash:</b> <span style='color: {prev_hash_color};'>{block['previous_hash']}</span></p>
     <p><b>Curr Hash:</b> <span style='color: {hash_color};'>{block['hash']}</span></p>
 </div>
-        """
+            """
     
     def display_voting_options(self):
         options = st.session_state['client'].ballot_options # list of options

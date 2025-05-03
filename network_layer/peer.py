@@ -50,9 +50,7 @@ class Peer:
                 if message_type == "REGISTER_ACK" and self.state == PeerState.REGISTERING:
                     # Register with tracker
                     peer_addresses = message.get("peer_list", [])
-                    for p in peer_addresses:
-                        # TODO: should ignore itself
-                        self.peers.add(p)
+                    self.peers = {p for p in peer_addresses if p != f"{self.local_addr}:{self.local_port}"}
                     self.has_registered = True
                     self.state = PeerState.CONNECTED
                     print(f"[Peer] Registered with tracker.")
@@ -75,8 +73,8 @@ class Peer:
                 
                 elif message_type == "UPDATE_PEERS":
                     new_peers = message.get("peer_list", [])
-                    # TODO: Should ignore itself
-                    self.peers = new_peers
+                    self.peers = {p for p in new_peers if p != f"{self.local_addr}:{self.local_port}"}
+                    print(f"[Peer] Updated peer list: {self.peers}")
 
                 # TODO: Add new message type where it needs to update peers list
 

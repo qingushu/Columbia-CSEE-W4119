@@ -1,7 +1,7 @@
 import hashlib
 import json
 import time
-from transaction import Transaction
+from .transaction import Transaction
 
 class Block:
     """
@@ -52,3 +52,5 @@ class Block:
         return hashlib.sha256(block_string).hexdigest() # the length of the hash str is 64 characters
 
     
+    def get_transactions(self):
+        return self.transactions
