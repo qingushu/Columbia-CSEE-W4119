@@ -56,19 +56,34 @@ def test_single_block_propagation_and_fork_resolution():
     print_chain(node1)
 
 def test_malicious_block_addition():
-    print("=== Test: Local Malicious Block Addition without Network Simulation ===")
+    print("=== Test: Malicious Block Addition Network Simulation ===")
 
+    # Create a blockchain and mine a malicious block
     node = Blockchain()
     node.add_new_transaction(Transaction("voter1", "candidateA"))
     node.mine_malicious_block()
-    malicious_block= node.last_block
-    print("malicious block mined:", malicious_block)
-    proof= malicious_block.hash
-    print("\nAttempting to add malicious block with incorrect previous_hash from dict...")
-    add_result = node.add_block(malicious_block, proof)
+    malicious_block = node.last_block
+    print("Malicious block mined on node:")
+    print(f"Block index: {malicious_block.index}, previous_hash: {malicious_block.previous_hash}, hash: {malicious_block.hash}")
+
+    # Create a new clean blockchain instance
+    node2 = Blockchain()
+
+    # Attempt to add the malicious block to the new blockchain
+    print("\nAttempting to add malicious block to a new blockchain instance...")
+    add_result = node2.add_block(malicious_block, malicious_block.hash)
     print(f"Add malicious block result: {add_result}")
-    assert not add_result, "Malicious block should not be added"
-    #assert node.is_valid_chain(node.chain), "Chain should remain valid after rejecting malicious block"
+    assert not add_result, "Malicious block should not be added to a clean blockchain"
+
+    # The malicious block chain on node should be invalid
+    is_valid = node.is_valid_chain(node.chain)
+    print(f"Is the malicious chain valid? {is_valid}")
+    assert not is_valid, "Malicious chain should be invalid"
+
+    # The clean blockchain should remain valid
+    is_valid_clean = node2.is_valid_chain(node2.chain)
+    print(f"Is the clean blockchain valid? {is_valid_clean}")
+    assert is_valid_clean, "Clean blockchain should remain valid"
 
 def test_malicious_chain_addition():
     print("=== Test: Malicious Chain Addition with Network Simulation ===")
@@ -78,7 +93,7 @@ def test_malicious_chain_addition():
     node.mine_block()
     print("Original chain:")
     print_chain(node)
-
+    
     # Create a malicious chain data with invalid block
     malicious_chain = node.get_chain_data()
     # Tamper with the second block's previous_hash to be invalid
@@ -90,6 +105,38 @@ def test_malicious_chain_addition():
     print(f"Chain replaced with malicious chain? {replaced}")
     assert not replaced, "Chain should not be replaced with malicious chain"
     assert node.is_valid_chain(node.chain), "Chain should remain valid after rejecting malicious chain"
+
+def test_malicious_block_propagation_and_rejection():
+    print("=== Test: Malicious Block Propagation and Rejection ===")
+
+    # Node 1 mines a malicious block
+    node1 = Blockchain()
+    node1.add_new_transaction(Transaction("voter1", "candidateA"))
+    node1.mine_malicious_block()
+    malicious_block = node1.last_block
+    print("Node 1 mined malicious block:")
+    print(f"Block index: {malicious_block.index}, previous_hash: {malicious_block.previous_hash}, hash: {malicious_block.hash}")
+
+    # Node 2 has a clean blockchain
+    node2 = Blockchain()
+
+    # Node 2 attempts to add the malicious block via add_block (should fail)
+    print("\nNode 2 attempts to add malicious block via add_block...")
+    add_result = node2.add_block(malicious_block, malicious_block.hash)
+    print(f"Add malicious block result: {add_result}")
+    assert not add_result, "Malicious block should not be added via add_block"
+
+    # Node 2 attempts to update chain with malicious chain data (should fail)
+    malicious_chain_data = node1.get_chain_data()
+    print("\nNode 2 attempts to update chain with malicious chain data...")
+    update_result = node2.update_chain([malicious_chain_data])
+    print(f"Update chain with malicious data result: {update_result}")
+    assert not update_result, "Malicious chain data should not replace the clean chain"
+
+    # Node 2's chain should remain valid
+    is_valid = node2.is_valid_chain(node2.chain)
+    print(f"Is Node 2's chain valid after rejecting malicious data? {is_valid}")
+    assert is_valid, "Node 2's chain should remain valid after rejecting malicious data"
 
 def test_successful_single_block_propagation():
     print("=== Test: Successful Single Block Propagation with Network Simulation ===")
