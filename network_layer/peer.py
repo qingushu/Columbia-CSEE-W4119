@@ -82,6 +82,8 @@ class Peer:
                     new_peers = message.get("peer_list", [])
                     self.peers = {p for p in new_peers if p != f"{self.local_addr}:{self.local_port}"}
                     print(f"[Peer] Updated peer list: {self.peers}")
+                elif message_type == "POKE":
+                    self.heartbeat_response()
 
             except socket.timeout:
                 if self.state == PeerState.REGISTERING:
@@ -137,10 +139,6 @@ class Peer:
         Called by application layer
         to submit ballot.
         '''
-        # First → sync with peers to make sure we’re on longest chain
-        #self.request_chain()
-        #time.sleep(2)  # wait for responses
-
         # Proceed to add vote and mine
         self.blockchain_obj.add_new_transaction(vote_transaction)
         print("[Peer] Adding transaction to new block and initiating mining...")
@@ -241,6 +239,14 @@ class Peer:
         else:
             print("[Peer] Received chain but it’s not longer → ignored.")
 
+    def heartbeat_response(self):
+        payload = {"type":"POKE-ACK"}
+        try:
+            self.sock.sendto(json.dumps(payload).encode(), (self.tracker_addr, self.tracker_port))
+            print(f"[Peer] Sent POKE-ACK to tracker at {self.tracker_addr}:{self.tracker_port}")
+        except Exception as e:
+            print(f"[Peer] Failed to send POKE-ACK to tracker: {e}")
+        
     def set_broadcasting_and_listening(self, enable):
         '''
         Application API. 
