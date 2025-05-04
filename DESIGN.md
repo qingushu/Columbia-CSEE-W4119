@@ -268,7 +268,7 @@ Implemented in `peer.py`.
 
 ---
 
-### 10. Summary
+### 9. Summary
 
 - This system demonstrates a decentralized blockchain voting system with:
   - Peer-to-peer networking
