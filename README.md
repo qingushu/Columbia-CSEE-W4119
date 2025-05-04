@@ -35,7 +35,8 @@ Example, run the following command for the streamlit UI to be run on port 8080, 
 
 NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing like this will NOT work due to Streamlit rendering. Either gracefully terminate the application by clicking on the 'Leave + Terminate' or CTRL + C in the client-running terminal to forcibly disconnect the client, which will cause the tracker to remove it after 3 seconds (as per the implemented heartbeat mechanism).
 
-📝 Usage Notes
+📝 **Usage Notes**
+
 ✅ Client-peer will:
 
 - Register with the tracker
