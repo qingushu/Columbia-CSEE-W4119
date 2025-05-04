@@ -20,7 +20,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 
 ### 1️⃣ Start the Tracker-Server via the commnand line (CLI)
 
-`python application/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
+`python application_layer/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
 
 Example: python server.py 8005 127.0.0.1 'Adam,Bob,Catherine'
 
@@ -30,7 +30,7 @@ The example above will create a server instance containing the ballot options 'A
 
 Run client.py which will serve as the main entry point for the client side application. Each instance will run a peer.
 
-`streamlit run application/client.py --server.port <streamlit_ui_port> --server.address <streamlit_ui_addr> <peer_port> <peer_addr> <tracker_port> <addr>`.
+`streamlit run application_layer/client.py --server.port <streamlit_ui_port> --server.address <streamlit_ui_addr> <peer_port> <peer_addr> <tracker_port> <addr>`.
 
 Please note that the separate port and addr required for streamlit_ui is simply for UI rendering and does not interfere with the designed network protocol.
 
