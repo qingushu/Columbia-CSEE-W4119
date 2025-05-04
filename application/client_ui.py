@@ -178,5 +178,4 @@ class ClientUi:
                 else:
                     st.toast('Ballot submitted. Initiating mining + broadcasting...', icon=":material/check:")
                     transaction = Transaction(voter_id, selected_candidate)
-                    # TODO: Submit the vote
                     st.session_state['client'].peer.submit_vote(transaction) 
