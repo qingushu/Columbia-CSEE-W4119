@@ -123,8 +123,8 @@ Implemented in `peer.py`.
 - The tracker responds with a REGISTER_ACK message, containing:
   - The allowed voting options
   - A list of currently known peers
-- The peer stores the voting options for later use.
-- The peer optionally sends a REQUEST_CHAIN message to known peers if it starts with an empty chain (or detected invalid chain).
+- The peer requests the voting options and stores the voting options in the application layer (client.py) for later use.
+- Upon initial connection with the tracker, the peer sends a REQUEST_CHAIN message to known peers to synchronize its local blockchain with others.
 - Any responding peer sends back one block at a time via CHAIN_BLOCK messages to reconstruct the chain incrementally.
 
 #### 4.3 Vote Submission (Peer Voting)

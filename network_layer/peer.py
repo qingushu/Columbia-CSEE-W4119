@@ -19,7 +19,7 @@ class PeerState(Enum):
     CLOSED = 7
 
 class Peer:
-    def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance=None):
+    def __init__(self, tracker_addr, tracker_port, local_addr, local_port, client_instance):
         """ 
         Initializes a Peer instance.
 
@@ -28,7 +28,7 @@ class Peer:
             tracker_port (int): Port of the tracker server.
             local_addr (str): Local IP address of this peer.
             local_port (int): Local port for this peer to bind.
-            client_instance (optional): Reference to the client UI/application layer.
+            client_instance: Reference to the client UI/application layer.
         """
         self.tracker_addr = tracker_addr
         self.tracker_port = tracker_port
