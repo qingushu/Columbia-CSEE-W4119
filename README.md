@@ -6,6 +6,11 @@ This project implements a **decentralized voting system** on a blockchain using 
 
 ---
 
+## Imported Libraries/Frameworks
+
+- **Streamlit (1.44.1)**: Used for creating the application layer UI
+- **Watchdog (6.0.0)**: To improve renering performance of UI
+
 ## 🚀 How to Run
 
 1. To run the application, create a virtual environment using `python -m venv venv`
