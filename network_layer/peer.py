@@ -65,6 +65,9 @@ class Peer:
                 message = json.loads(data.decode())
                 message_type = message.get("type")
 
+                if message_type == "POKE": # Move POKE condition here to enable continued heartbeat response for fork demonstration
+                    self.heartbeat_response()
+
                 if not self.broadcasting_and_listening_enabled:
                     continue
 
@@ -95,9 +98,6 @@ class Peer:
                     new_peers = message.get("peer_list", [])
                     self.peers = {p for p in new_peers if p != f"{self.local_addr}:{self.local_port}"}
                     print(f"[Peer] Updated peer list: {self.peers}")
-
-                elif message_type == "POKE":
-                    self.heartbeat_response()
 
                 elif message_type == "CHAIN_BLOCK":
                     block_dict = message["block"]
@@ -153,6 +153,7 @@ class Peer:
         Args:
             vote_transaction (Transaction): The vote transaction to be mined.
         """
+        
         self.blockchain_obj.add_new_transaction(vote_transaction)
         print("[Peer] Adding transaction to new block and initiating mining...")
         mined = self.blockchain_obj.mine_block()

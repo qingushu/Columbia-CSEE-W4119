@@ -114,7 +114,7 @@ result log:
 
 ### 4.3 Fork Simulation
 
-- Disconnect peer 3 from network
+- Disconnect peer 3 from network using the Developer/Demo Settings from the sidebar.
 - Submit vote at peer 3 & mine a block
 - Submit vote at peer 1 & mine a different block
 - Reconnect peer 3
@@ -125,7 +125,7 @@ result log:
 ### 4.4 Heartbeat Failure
 
 - Start all peers
-- Kill peer 2 process without sending LEAVE_PEER
+- Kill peer 2 process without sending LEAVE_PEER using CTRL + C
 - Observe tracker sending POKE to peer 2
 - Tracker logs peer removed due to heartbeat timeout after 3 missed
 - Remaining peers receive updated peer list

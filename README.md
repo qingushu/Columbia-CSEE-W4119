@@ -9,7 +9,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 ## Imported Libraries/Frameworks
 
 - **Streamlit (1.44.1)**: Used for creating the application layer UI
-- **Watchdog (6.0.0)**: To improve renering performance of UI
+- **Watchdog (6.0.0)**: To improve rendering performance of UI
 
 ## 🚀 How to Run
 
@@ -18,7 +18,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 3. Install project dependencies from the root repository. For Mac users: `pip install -r requirements.txt`.
 4. Ensure you are in the top-most directory.
 
-### 1️⃣ Start the Tracker-Server via the commnand line (CLI)
+### 1️⃣ Start the Tracker-Server via the command line (CLI)
 
 `python application_layer/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
 
@@ -47,7 +47,7 @@ NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing li
 - Register with the tracker
 - Get a list of other peers
 - Sync chain with other peers (upon initial connection and fork resolution)
-- Continuosly ubmit votes → mine a block locally → broadcast the block
+- Continuously submit votes → mine a block locally → broadcast the block
 
 ✅ Server-tracker will:
 
@@ -82,19 +82,13 @@ NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing li
 
 ✅ The network layer has been set up to include blocking connect() and request_ballot() functions to be called by the application layer. If network conditions prevent requests/responses from being successfully delivered, the peer will continue to send requests until it fulfills the request.
 
-⚠️ **Corner Cases / Limitations (TO CONFIRM WITH GUSHU)**
-
-- Chain sync happens only upon initial registration with tracker (upon calling application connect() api) or when a fork is detected or explicitly requested (no periodic sync)
-- If multiple peers mine conflicting blocks at same index, the node will trigger a REQUEST_CHAIN and adopt the longest valid chain
-- If a peer broadcasts a block before syncing latest chain → may result in fork
-
 ✅ **Key Features**
 
 - Custom blockchain implementation with proof-of-work
 - Peer-to-peer messaging over UDP
 - Tracker server with heartbeat monitoring
 - Fork detection and chain synchronization
-- Streamlit UI for vote subumission and real-time rendering of blockchain and total votes across all peers.
+- Streamlit UI for vote submission and real-time rendering of blockchain and total votes across all peers.
 
 **Authors**
 
