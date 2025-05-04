@@ -13,17 +13,17 @@ This project implements a **decentralized voting system** on a blockchain using 
 3. Install project dependencies from the root repository. For Mac users: `pip install -r requirements.txt`.
 4. Ensure you are in the top-most directory.
 
-### 1️⃣ Start the tracker server via server.py using command-line arguments (CLI)
+### 1️⃣ Start the Tracker-Server via server.py using command-line arguments (CLI)
 
 `python application/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
 
 Example: python server.py 8005 127.0.0.1 'Adam,Bob,Catherine'
 
-The example above will create a server instance containing the ballot options 'Adam', 'Bob', and 'Catherine.' A tracker will also be created.
+The example above will create a server instance containing the ballot options 'Adam', 'Bob', and 'Catherine.' A tracker will also be created. Note that the tracker only stores the list of peers and the application-layer server.py will store the ballot options that tracker.py will access when receiving other client-peers requests.
 
-### 2️⃣ Start the peers with the UI
+### 2️⃣ Start the Peers + UI
 
-Run client.py which will server as the main entry point for the client side application. Each instance will run a peer.
+Run client.py which will serve as the main entry point for the client side application. Each instance will run a peer.
 
 `streamlit run application/client.py --server.port <streamlit_ui_port> --server.address <streamlit_ui_addr> <peer_port> <peer_addr> <tracker_port> <addr>`.
 
