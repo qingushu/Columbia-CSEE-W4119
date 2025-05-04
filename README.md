@@ -8,7 +8,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 
 ## 🚀 How to Run
 
-1. To run the application, create a virtual environment using `python3 -m venv venv`
+1. To run the application, create a virtual environment using `python -m venv venv`
 2. Activate the virtual environment. For Mac users: `source venv/bin/activate`
 3. Install project dependencies from the root repository. For Mac users: `pip install -r requirements.txt`.
 4. Ensure you are in the top-most directory.
