@@ -18,7 +18,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 3. Install project dependencies from the root repository. For Mac users: `pip install -r requirements.txt`.
 4. Ensure you are in the top-most directory.
 
-### 1️⃣ Start the Tracker-Server via server.py using command-line arguments (CLI)
+### 1️⃣ Start the Tracker-Server via the commnand line (CLI)
 
 `python application/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
 
@@ -72,11 +72,15 @@ NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing li
 
 🏗️ **Design**
 
-- ✅ Peers store and broadcast individual blocks
-- ✅ Chain sync is block-by-block transfer (rather than entire chain at once) to overcome UDP packet size limit
-- ✅ Tracker does NOT store chain → only peer list
-- ✅ Upon initializing a peer instance in client.py, the application layer will request to be registered with the tracker. Once successfully registered, it will request a ballot. Once a ballot has been received, the streamlit UI will be rendered. If you see the streamlit UI loading but not the interface, this means that the peer was not registered with the tracker or the ballot has not been received. Please check logs to determine the issue.
-- ✅ The network layer has been set up to include blocking connect() and request_ballot() functions to be called by the application layer. If network conditions prevent requests/responses from being successfully delivered, the peer will continue to send requests until it fulfills the request.
+✅ Peers store and broadcast individual blocks
+
+✅ Chain sync is block-by-block transfer (rather than entire chain at once) to overcome UDP packet size limit
+
+✅ Tracker does NOT store chain → only peer list
+
+✅ Upon initializing a peer instance in client.py, the application layer will request to be registered with the tracker. Once successfully registered, it will request a ballot. Once a ballot has been received, the streamlit UI will be rendered. If you see the streamlit UI loading but not the interface, this means that the peer was not registered with the tracker or the ballot has not been received. Please check logs to determine the issue.
+
+✅ The network layer has been set up to include blocking connect() and request_ballot() functions to be called by the application layer. If network conditions prevent requests/responses from being successfully delivered, the peer will continue to send requests until it fulfills the request.
 
 ⚠️ **Corner Cases / Limitations (TO CONFIRM WITH GUSHU)**
 
