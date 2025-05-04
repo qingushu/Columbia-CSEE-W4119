@@ -11,7 +11,8 @@ This project implements a simplified blockchain-based **Decentralized Voting Sys
 
 A tracker node helps coordinate peer discovery and liveness detection via heartbeat. Forks are resolved by adopting the **longest valid chain**. The system supports peer joins, departures, and synchronization after temporary disconnection.
 
-✅ Designed for a minimum of 3 peers communicating over Google Cloud VMs.  
+✅ Designed to satisfy project requirements for a minimum of 3 peers communicating over Google Cloud VMs.
+
 ✅ Each peer acts as both a voter and miner.
 
 ---
@@ -50,7 +51,8 @@ There’s **no periodic chain sync** (lazy sync only upon events).
 
 ### 2.3 Genesis Block
 
-✅ Created automatically when each peer initializes `Blockchain()`.  
+✅ Created automatically when each peer initializes `Blockchain()`.
+
 ✅ Contains index 0, empty transactions, fixed timestamp, and a hardcoded hash.
 
 This ensures all peers share the same genesis block.
@@ -76,6 +78,7 @@ Each peer:
 
 ✅ Registers with tracker (`REGISTER_PEER`)  
 ✅ Receives list of peers  
+✅ Requests most recent chain upon first registering with tracker
 ✅ Submits votes → triggers mining → broadcasts block  
 ✅ Listens for `NEW_BLOCK` from other peers  
 ✅ Verifies incoming blocks (hash, PoW, previous hash)  
@@ -88,102 +91,118 @@ Implemented in `peer.py`.
 
 ### 3.3 Message Types
 
-| Type            | Sender      | Receiver    | Purpose                                    |
-|----------------|-------------|-------------|--------------------------------------------|
-| REGISTER_PEER   | Peer        | Tracker     | Join the network                            |
-| REGISTER_ACK    | Tracker     | Peer        | Return peer list                            |
-| UPDATE_PEERS    | Tracker     | Peer        | Notify updated peer list                    |
-| NEW_BLOCK       | Peer        | Peers       | Broadcast mined block                       |
-| REQUEST_CHAIN   | Peer        | Peers       | Request full chain (triggered on fork)      |
-| CHAIN_BLOCK     | Peer        | Peer        | Response with one block at a time           |
-| POKE            | Tracker     | Peer        | Heartbeat ping                              |
-| POKE_ACK        | Peer        | Tracker     | Heartbeat response                          |
-| LEAVE_PEER      | Peer        | Tracker     | Graceful leave                              |
+| Type          | Sender  | Receiver | Purpose                                |
+| ------------- | ------- | -------- | -------------------------------------- |
+| REGISTER_PEER | Peer    | Tracker  | Join the network                       |
+| REGISTER_ACK  | Tracker | Peer     | Return peer list                       |
+| UPDATE_PEERS  | Tracker | Peer     | Notify updated peer list               |
+| NEW_BLOCK     | Peer    | Peers    | Broadcast mined block                  |
+| REQUEST_CHAIN | Peer    | Peers    | Request full chain (triggered on fork) |
+| CHAIN_BLOCK   | Peer    | Peer     | Response with one block at a time      |
+| POKE          | Tracker | Peer     | Heartbeat ping                         |
+| POKE_ACK      | Peer    | Tracker  | Heartbeat response                     |
+| LEAVE_PEER    | Peer    | Tracker  | Graceful leave                         |
 
 ---
 
 ### 4. Workflow
 
-4.1 Tracker Initialization
- - The tracker node (tracker_server.py) starts and binds to a fixed UDP port.
- - It initializes a list of allowed voting options (candidates).
- - It maintains an active peer list, tracking:
- - Peers that have registered
- - Peers responding to periodic POKE heartbeats
- - It begins sending POKE messages every second to all known peers.
+#### 4.1 Tracker Initialization
 
-4.2 Peer Registration and Startup
- - A peer (peer.py) starts and binds to a local UDP port.
- - It sends a REGISTER_PEER message to the tracker, providing its IP/port.
- - The tracker responds with a REGISTER_ACK message, containing:
- - The allowed voting options
- - A list of currently known peers
- - The peer stores the voting options for later use.
- - The peer optionally sends a REQUEST_CHAIN message to known peers if it starts with an empty chain (or detected invalid chain).
- - Any responding peer sends back one block at a time via CHAIN_BLOCK messages to reconstruct the chain incrementally.
+- The tracker node (tracker_server.py) starts and binds to a fixed UDP port.
+- It initializes a list of allowed voting options (candidates).
+- It maintains an active peer list, tracking:
+- Peers that have registered
+- Peers responding to periodic POKE heartbeats
+- It begins sending POKE messages every second to all known peers.
 
-4.3 Vote Submission (Peer Voting)
- - A peer’s user (via CLI or UI) selects a candidate to vote for.
- - The peer creates a Transaction object containing:
- - voter_id
- - candidate_id
- - Timestamp
- - The peer calls submit_vote():
- - Adds the transaction to its blockchain’s pending transactions
- - Immediately triggers mining a new block containing that transaction
+#### 4.2 Peer Registration and Startup
 
-4.4 Block Mining (Proof-of-Work)
- - The peer runs mine_block():
- - Builds a Block object
- - Tries nonce values until hash(block_data + nonce) satisfies the difficulty (e.g., 2 leading zeros)
- - Once mined:
- - The block is appended to the peer’s local blockchain
- - A NEW_BLOCK message is broadcast to all known peers
+- A peer (peer.py) starts and binds to a local UDP port.
+- It sends a REGISTER_PEER message to the tracker, providing its IP/port.
+- The tracker responds with a REGISTER_ACK message, containing:
+  - The allowed voting options
+  - A list of currently known peers
+- The peer stores the voting options for later use.
+- The peer optionally sends a REQUEST_CHAIN message to known peers if it starts with an empty chain (or detected invalid chain).
+- Any responding peer sends back one block at a time via CHAIN_BLOCK messages to reconstruct the chain incrementally.
 
-4.5 Block Propagation and Validation
- - Each peer continuously listens for NEW_BLOCK messages from others.
- - Upon receiving a new block:
- - Validate:
- - Does previous_hash match local last block hash?
- - Does the block’s hash satisfy the difficulty?
- - If valid and fits directly on the current chain → append
- - If index already exists but hash mismatches → fork detected!
- - Peer calls request_chain() to trigger a full chain sync
- - If invalid (bad hash, broken link, invalid PoW):
- - Block is rejected
- - Chain sync may be triggered depending on detection
+#### 4.3 Vote Submission (Peer Voting)
 
-4.6 Fork Resolution
- - When a peer detects a fork (incoming block index already exists but hash mismatch):
- - Sends REQUEST_CHAIN to peers
- - Peers respond with one block at a time (CHAIN_BLOCK messages) to rebuild missing chain
- - Peer replaces its local chain with the longer valid chain received
+- A peer’s user selects a candidate to vote for.
+- The peer creates a Transaction object containing:
+  - voter_id
+  - candidate_id
+  - timestamp
+- The peer calls submit_vote():
+- Adds the transaction to its blockchain’s pending transactions
+- Immediately triggers mining a new block containing that transaction
 
-4.7 Vote Tallying
- - Each peer independently computes vote results from its local blockchain.
- - Tally computed by iterating over blockchain.chain and counting votes in transactions.
- - Result can be queried via CLI or UI at any time.
- - Because all valid chains should converge to the same longest chain, results are consistent across peers.
+#### 4.4 Block Mining (Proof-of-Work)
 
-4.8 Peer Liveness and Failure Handling
- - Tracker sends POKE heartbeat to each peer every second.
- - Each peer responds immediately with POKE_ACK.
- - Tracker tracks consecutive missed responses:
- - If a peer misses 3 consecutive POKE_ACK, it is removed from the peer list.
- - Removed peers are excluded from further peer list updates sent to new peers.
+- The peer runs mine_block():
+- Builds a Block object
+- Tries nonce values until hash(block_data + nonce) satisfies the difficulty (e.g., 2 leading zeros)
+- Once mined:
 
-4.9 Peer Departure
- - A peer can send LEAVE_PEER message to tracker before shutdown.
- - Tracker removes the peer immediately from active list.
- - Remaining peers retain blockchain state.
+  - The block is appended to the peer’s local blockchain
+  - A NEW_BLOCK message is broadcast to all known peers
 
-📝 Key Differences from Standard Blockchain
+#### 4.5 Block Propagation and Validation
+
+- Each peer continuously listens for NEW_BLOCK messages from others.
+- Upon receiving a new block:
+- Validate:
+  - Does previous_hash match local last block hash?
+  - Does the block’s hash satisfy the difficulty?
+- If valid and fits directly on the current chain → append
+- If index already exists but hash mismatches → fork detected!
+- Peer calls request_chain() to trigger a full chain sync
+- If invalid (bad hash, broken link, invalid PoW):
+
+  - Block is rejected
+  - Chain sync may be triggered depending on detection
+
+#### 4.6 Fork Resolution
+
+- When a peer detects a fork (incoming block index already exists but hash mismatch):
+- Sends REQUEST_CHAIN to peers
+- Peers respond with one block at a time (CHAIN_BLOCK messages) to rebuild missing chain
+- Peer replaces its local chain with the longer valid chain received
+
+#### 4.7 Vote Tallying
+
+- Each peer independently computes vote results from its local blockchain.
+- Tally computed by iterating over blockchain.chain and counting votes in transactions.
+- Result can be queried at any time. On the UI, the tally is displayed in real-time.
+- Because all valid chains should converge to the same longest chain, results are consistent across peers.
+
+#### 4.8 Peer Liveness and Failure Handling
+
+- Each peer responds immediately with POKE_ACK.
+- Tracker tracks consecutive missed responses:
+- If a peer misses 3 consecutive POKE_ACK, it is removed from the peer list.
+- Removed peers are excluded from further peer list updates sent to new peers.
+
+#### 4.9 Peer Departure
+
+- A peer can send LEAVE_PEER message to tracker before shutdown. This can be done by clicking on the 'Leave + Terminate' button on the UI.
+- Tracker removes the peer immediately from active list.
+- Remaining peers retain blockchain state.
+- Alternatively, the user can CTRL+C to termiante the client.py program to initiate an ungraceful termination. The tracker will eventually remove the peer from the peer list due to the heartbeat mechanism.
+
+#### 📝 Key Differences from Standard Blockchain
+
 ✅ No global transaction pool → peer mines vote immediately
+
 ✅ No automatic periodic chain sync → sync only on fork or startup
+
 ✅ Only 1 vote per block → simplifies validation
+
 ✅ Chain sync implemented as incremental 1-block-at-a-time responses (to avoid UDP size limits)
 
-4.10 Example Interaction Timeline
+#### 4.10 Example Interaction Timeline
+
 1. Tracker starts.
 2. Peer A, B, C join → send REGISTER_PEER → get peer list + vote options.
 3. Peer A votes → mines block → broadcasts NEW_BLOCK.
@@ -195,30 +214,34 @@ Implemented in `peer.py`.
 9. Peer B crashes → tracker stops receiving POKE_ACK → removes B.
 10. Peer B rejoins → sends REGISTER_PEER → receives peer list → sends REQUEST_CHAIN → syncs chain.
 
-
 ### 5. Code Structure
 
-| File                | Responsibility                            |
-| ------------------- | ----------------------------------------- |
-| `block.py`          | Block class (structure, compute\_hash)    |
-| `blockchain.py`     | Blockchain class (mining, validation)     |
-| `transaction.py`    | Vote transaction structure                |
-| `tracker_server.py` | Tracker node, peer management             |
-| `peer.py`           | Peer node (voting, mining, sync, network) |
-| `client.py`         | CLI to interact with peer instance        |
-| `client_ui.py`      | Optional Streamlit UI for peer            |
-| `server.py`         | Tracker initialization wrapper            |
+| File                | Responsibility                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `block.py`          | Block class (structure, compute_hash)                                                                   |
+| `blockchain.py`     | Blockchain class (mining, validation)                                                                   |
+| `transaction.py`    | Vote transaction structure                                                                              |
+| `tracker_server.py` | Tracker node, peer management                                                                           |
+| `peer.py`           | Peer node (voting, mining, sync, network)                                                               |
+| `client.py`         | Client application class to interact with peer instance. Integrated with Streamlit and initiates UI.    |
+| `client_ui.py`      | Streamlit UI code for peer                                                                              |
+| `server.py`         | Tracker-server application class to intialize tracker.py. Stores ballot options based on CLI arguments. |
 
 ---
 
 ### 6. Key Design Decisions
 
 ✅ One transaction per block → simplified mining & block broadcast
+
 ✅ No transaction pool
+
 ✅ Peers broadcast mined block, not transactions
+
 ✅ Fork resolution via requesting chain only when fork detected
+
 ✅ Tracker monitors liveness via POKE/POKE_ACK protocol
-✅ UDP for lightweight, lossy communication (fits academic scope)
+
+✅ UDP for lightweight, lossy communication
 
 ---
 
@@ -236,18 +259,21 @@ Implemented in `peer.py`.
 ### 8. Security Considerations
 
 ✅ Cryptographic hash links blocks
+
 ✅ Invalid blocks rejected at peer level
+
 ✅ Votes immutable once mined
+
 ✅ No vote anonymity → voter_id stored as plain string
 
 ---
 
 ### 10. Summary
-- This system demonstrates a decentralized blockchain voting system with:
-- Peer-to-peer networking
-- Mining on vote submission
-- Fork resolution
-- Peer discovery via tracker
-- Liveness detection via heartbeat
-- Designed for educational demonstration of blockchain and distributed consensus principles.
 
+- This system demonstrates a decentralized blockchain voting system with:
+  - Peer-to-peer networking
+  - Mining on vote submission
+  - Fork resolution
+  - Peer discovery via tracker
+  - Liveness detection via heartbeat
+  - Designed for educational demonstration of blockchain and distributed consensus principles.
