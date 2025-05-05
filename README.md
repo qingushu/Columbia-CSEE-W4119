@@ -22,7 +22,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 
 `python application_layer/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
 
-Example: python application_layer/server.py 8005 127.0.0.1 'Adam,Bob,Catherine'
+Example: `python application_layer/server.py 8005 127.0.0.1 'Adam,Bob,Catherine'`
 
 The example above will create a server instance containing the ballot options 'Adam', 'Bob', and 'Catherine.' A tracker will also be created. Note that the tracker only stores the list of peers and the application-layer server.py will store the ballot options that tracker.py will access when receiving other client-peers requests.
 
@@ -34,9 +34,12 @@ Run client.py which will serve as the main entry point for the client side appli
 
 Please note that the separate port and addr required for streamlit_ui is simply for UI rendering and does not interfere with the designed network protocol.
 
-Example, run the following command for the streamlit UI to be run on port 8080, the peer to be run on port 8081, and the tracker to be run on port 8005.
+Example, run the following command for the streamlit WebUI to be run on port 8080 , the peer to be run on port 8081, and the tracker to be run on port 8005 which aligns with the tracker server port/ip combo.
 
-`streamlit run application_layer/client.py --server.port 8080 --server.address 127.0.0.1 8081 127.0.0.1 8005 127.0.0.1`
+Here is a 3-peer example:
+- `streamlit run application_layer/client.py --server.port 8070 --server.address 127.0.0.1 8071 127.0.0.1 8005 127.0.0.1`
+- `streamlit run application_layer/client.py --server.port 8080 --server.address 127.0.0.1 8081 127.0.0.1 8005 127.0.0.1`
+- `streamlit run application_layer/client.py --server.port 8090 --server.address 127.0.0.1 8091 127.0.0.1 8005 127.0.0.1`
 
 NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing like this will NOT work due to Streamlit rendering. Either gracefully terminate the application by clicking on the 'Leave + Terminate' or CTRL + C in the client-running terminal to forcibly disconnect the client, which will cause the tracker to remove it after 3 seconds (as per the implemented heartbeat mechanism).
 
