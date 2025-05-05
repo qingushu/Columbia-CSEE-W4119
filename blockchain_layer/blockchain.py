@@ -130,7 +130,10 @@ class Blockchain:
  
     def is_valid_chain(self, chain):
         """
-        Checks if the entire blockchain is valid.
+        Checks if the entire blockchain is valid by verifying:
+        1. Each block's hash matches its computed hash (PoW validation)
+        2. Each block's previous_hash field properly links to the previous block
+        3. The chain starts with a valid genesis block
         
         Args:
             chain (list): List of Block objects
@@ -138,27 +141,44 @@ class Blockchain:
         Returns:
             bool: True if valid, False otherwise
         """
-        result = True
-        previous_hash = "0"
-
-        for block in chain:
+        # Start with genesis block validation
+        if len(chain) == 0:
+            return False
+            
+        # Check genesis block separately
+        genesis = chain[0]
+        if genesis.index != 0 or genesis.previous_hash != "0":
+            return False
+            
+        # Validate genesis block hash
+        if not self.is_valid_proof(genesis, genesis.hash):
+            return False
+            
+        # Validate the rest of the chain
+        previous_hash = genesis.hash
+        
+        for i in range(1, len(chain)):
+            block = chain[i]
             block_hash = block.hash
             
-            # Store the original hash
-            
-            
-            # Compute what the hash should be based on the block's contents
-            # computed_hash = block.compute_hash()
-            
-            # Check if the stored hash matches the computed hash and links properly
-            if not self.is_valid_proof(block, block_hash) or \
-                    previous_hash != block.previous_hash:
-                result = False
-                break
-
+            # Check block index continuity
+            if block.index != i:
+                print(f"Block index mismatch at position {i}")
+                return False
+                
+            # Check previous hash link
+            if block.previous_hash != previous_hash:
+                print(f"Invalid previous hash link at block {block.index}")
+                return False
+                
+            # Verify the stored hash satisfies PoW and matches the computed hash
+            if not self.is_valid_proof(block, block_hash):
+                print(f"Invalid hash/PoW at block {block.index}")
+                return False
+                
             previous_hash = block_hash
-
-        return result
+            
+        return True
 
     def mine_block(self):
         """
