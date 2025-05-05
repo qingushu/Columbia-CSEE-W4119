@@ -108,11 +108,15 @@ class Peer:
                     print(f"[Peer] Received block {index}/{total_blocks - 1}")
                     if len(self.temp_chain) == self.temp_total_blocks:
                         new_chain = [self.temp_chain[i] for i in sorted(self.temp_chain.keys())]
-                        self.blockchain_obj.chain = new_chain
-                        print("[Peer] Chain synced from peer")
+
+                        if self.blockchain_obj.is_valid_chain(new_chain) and len(new_chain) > len(self.blockchain_obj.chain):
+                            self.blockchain_obj.chain = new_chain
+                            print("[Peer] Chain synced from peer (valid chain accepted).")
+                        else:
+                            print("[Peer] Received chain is invalid or not longer → rejected.")
+
                         self.temp_chain.clear()
                         self.temp_total_blocks = None
-
             except socket.timeout:
                 if self.state == PeerState.REGISTERING:
                     payload = {"type": "REGISTER_PEER"}

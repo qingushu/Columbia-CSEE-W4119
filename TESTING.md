@@ -122,6 +122,31 @@ result log:
 
 ✅ PASS if peer 3 chain is replaced with longer chain
 
+result log:
+[Peer] Chain synced from peer
+[Peer] Received block 0/19
+[Peer] Received block 1/19
+[Peer] Received block 2/19
+[Peer] Received block 3/19
+[Peer] Received block 4/19
+[Peer] Received block 5/19
+[Peer] Received block 6/19
+[Peer] Received block 7/19
+[Peer] Received block 8/19
+[Peer] Received block 9/19
+[Peer] Received block 10/19
+[Peer] Received block 11/19
+[Peer] Received block 12/19
+[Peer] Received block 13/19
+[Peer] Received block 14/19
+[Peer] Received block 15/19
+[Peer] Received block 16/19
+[Peer] Received block 17/19
+[Peer] Received block 18/19
+[Peer] Received block 19/19
+[Peer] Chain synced from peer
+
+
 ### 4.4 Heartbeat Failure
 
 - Start all peers
@@ -143,6 +168,20 @@ result log:
 - Verify no invalid block added
 
 ✅ PASS if block rejected and chain sync triggered
+
+result log:
+the block2 does not satisfy the difficulty criteria
+the block2 hash is malicious_previous_hash
+the block2 computed hash is 000461523d071fe8c69ddc1cb4c6f79155c89895fe326c6643abe1680445b1d3
+the difficulty is 2
+[Peer] Invalid block, requesting chain sync
+[Peer] Received block 0/1
+[Peer] Received block 1/1
+[Peer] Chain synced from peer
+[Peer] Received block 0/2
+[Peer] Received block 1/2
+[Peer] Received block 2/2
+[Peer] Chain synced from peer
 
 ## 5. How to Run Tests
 
