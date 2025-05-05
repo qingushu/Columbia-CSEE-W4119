@@ -72,9 +72,16 @@ NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing li
 
 🏗️ **Design**
 
-✅ Peers store and broadcast individual blocks
+✅ Peers store and broadcast individual blocks, the block will be propagated once mined.
+
+✅ Other peer receives the block and verifies the previous_hash field for local chain alignment.
+- if the block satisfies previous_hash alignment with local chain's last block and has valid PoW, it will be added into local chain with no further actions
+- if the block does not satisfy previous_hash:
+  - If PoW fails, abort
+  - If PoW is satisfies, trigger chain sync
 
 ✅ Chain sync is block-by-block transfer (rather than entire chain at once) to overcome UDP packet size limit
+- a peer verified the chain for PoW and hash links when syncing.
 
 ✅ Tracker does NOT store chain → only peer list
 
