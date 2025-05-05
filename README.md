@@ -36,7 +36,7 @@ Please note that the separate port and addr required for streamlit_ui is simply 
 
 Example, run the following command for the streamlit UI to be run on port 8080, the peer to be run on port 8081, and the tracker to be run on port 8005.
 
-`streamlit run application/client.py --server.port 8080 --server.address 127.0.0.1 8081 127.0.0.1 8005 127.0.0.1`
+`streamlit run application_layer/client.py --server.port 8080 --server.address 127.0.0.1 8081 127.0.0.1 8005 127.0.0.1`
 
 NOTE: Please do not run CTRL + R in the browser when using the UI. Refreshing like this will NOT work due to Streamlit rendering. Either gracefully terminate the application by clicking on the 'Leave + Terminate' or CTRL + C in the client-running terminal to forcibly disconnect the client, which will cause the tracker to remove it after 3 seconds (as per the implemented heartbeat mechanism).
 
