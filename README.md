@@ -14,7 +14,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 ## 🚀 How to Run
 
 1. To run the application, create a virtual environment using `python -m venv venv`
-2. Activate the virtual environment. For Mac users: `source venv/bin/activate`
+2. Activate the virtual environment. For Mac users: `source venv/bin/activate`, for windows: `venv\Scripts\activate.bat`      
 3. Install project dependencies from the root repository. For Mac users: `pip install -r requirements.txt`.
 4. Ensure you are in the top-most directory.
 
@@ -22,7 +22,7 @@ This project implements a **decentralized voting system** on a blockchain using 
 
 `python application_layer/server.py <tracker_port> <tracker_ip_address> <string_of_comma_separated_ballot_options>`
 
-Example: python server.py 8005 127.0.0.1 'Adam,Bob,Catherine'
+Example: python application_layer/server.py 8005 127.0.0.1 'Adam,Bob,Catherine'
 
 The example above will create a server instance containing the ballot options 'Adam', 'Bob', and 'Catherine.' A tracker will also be created. Note that the tracker only stores the list of peers and the application-layer server.py will store the ballot options that tracker.py will access when receiving other client-peers requests.
 
